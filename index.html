@@ -359,16 +359,16 @@
   .exercise-row {
     display: flex;
     align-items: stretch;
-    min-height: 72px;
+    min-height: 64px;
   }
 
   .exercise-num {
-    width: 44px;
+    width: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
+    font-size: 16px;
     color: var(--text-dim);
     border-right: 1px solid var(--border);
     flex-shrink: 0;
@@ -380,18 +380,18 @@
 
   .exercise-main {
     flex: 1;
-    padding: 12px 14px;
+    padding: 10px 12px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
     min-width: 0;
   }
 
   .exercise-name {
-    font-size: 15px;
-    font-weight: 600;
-    line-height: 1.25;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.22;
     color: var(--text);
     background: transparent;
     border: none;
@@ -399,6 +399,12 @@
     font-family: inherit;
     width: 100%;
     padding: 2px 0;
+    /* Wrap support for textarea */
+    resize: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
   }
 
   .exercise-name:focus {
@@ -420,12 +426,12 @@
   }
 
   .weight-btn {
-    width: 38px;
+    width: 28px;
     height: 100%;
     background: transparent;
     border: none;
     color: var(--text);
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 300;
     cursor: pointer;
     transition: background 0.15s;
@@ -441,9 +447,9 @@
   }
 
   .weight-display {
-    min-width: 70px;
+    min-width: 56px;
     text-align: center;
-    padding: 0 4px;
+    padding: 0 2px;
     border-left: 1px solid var(--border);
     border-right: 1px solid var(--border);
     height: 100%;
@@ -456,7 +462,7 @@
 
   .weight-value {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 24px;
+    font-size: 20px;
     line-height: 1;
     color: var(--accent);
     letter-spacing: 0.02em;
@@ -464,7 +470,7 @@
 
   .weight-unit {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
+    font-size: 8px;
     color: var(--text-dim);
     text-transform: uppercase;
     margin-top: 2px;
@@ -473,13 +479,13 @@
 
   .weight-input {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 24px;
+    font-size: 20px;
     color: var(--accent);
     background: transparent;
     border: none;
     outline: none;
     text-align: center;
-    width: 60px;
+    width: 50px;
     padding: 0;
   }
 
@@ -1167,13 +1173,13 @@
 
   .done-bar {
     width: 100%;
-    padding: 16px;
+    padding: 11px;
     background: var(--surface-2);
     border: none;
     border-top: 1px solid var(--border);
     color: var(--text);
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 17px;
+    font-size: 14px;
     letter-spacing: 0.15em;
     cursor: pointer;
     text-align: center;
@@ -1943,8 +1949,10 @@
             </div>
             <div class="exercise-num">${eIdx + 1}</div>
             <div class="exercise-main">
-              <input class="exercise-name" value="${escapeAttr(ex.name)}" 
-                onchange="updateExerciseField('${group.id}','${ex.id}','name',this.value)">
+              <textarea class="exercise-name" rows="1"
+                oninput="autosizeNameField(this)"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                onchange="updateExerciseField('${group.id}','${ex.id}','name',this.value)">${escapeHtml(ex.name)}</textarea>
               <input class="exercise-name exercise-meta" style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);"
                 value="${escapeAttr(ex.meta || '')}" 
                 onchange="updateExerciseField('${group.id}','${ex.id}','meta',this.value)">
@@ -2015,8 +2023,11 @@
     
     // Update Session Complete Bar + auto-log if eligible
     updateSessionCompleteBar(total, done);
+
+    // Auto-size exercise name textareas to fit their wrapped content
+    requestAnimationFrame(autosizeAllNameFields);
   }
-  
+
   function isSessionLoggedToday() {
     const date = activeDateKey();
     const month = date.slice(0, 7);
@@ -2264,6 +2275,16 @@
     if (navigator.vibrate) navigator.vibrate(10);
   }
 
+  function autosizeNameField(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  function autosizeAllNameFields() {
+    document.querySelectorAll('textarea.exercise-name').forEach(autosizeNameField);
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
   }
@@ -2421,7 +2442,7 @@
   // false if the action is being deferred until the user confirms via the modal.
   function confirmIfUnsavedEdit(onProceed) {
     const active = document.activeElement;
-    if (!active || active.tagName !== 'INPUT' || !active.classList.contains('exercise-name')) return true;
+    if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') || !active.classList.contains('exercise-name')) return true;
     const original = active.defaultValue;
     const current = active.value;
     if (original === current) return true;
@@ -2466,7 +2487,7 @@
   // Warn on app close / tab close / refresh when there's an unsaved edit
   window.addEventListener('beforeunload', (e) => {
     const active = document.activeElement;
-    if (active && active.tagName === 'INPUT' && active.classList.contains('exercise-name')) {
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.classList.contains('exercise-name')) {
       if (active.value !== active.defaultValue) {
         e.preventDefault();
         e.returnValue = '';
