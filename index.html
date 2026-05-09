@@ -80,6 +80,118 @@
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .date:active { background: var(--surface-2); }
+
+  .date.backdated {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .today-pill {
+    display: none;
+    align-items: center;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    margin-left: 6px;
+  }
+
+  .today-pill.show { display: inline-flex; }
+  .today-pill:active { transform: scale(0.96); }
+
+  /* Hidden date input — opened programmatically */
+  .date-picker-hidden {
+    position: absolute;
+    width: 0;
+    height: 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Sticky LOG LIFT pill (backdate save reminder) */
+  .log-lift-pill {
+    display: none;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 999px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    z-index: 90;
+    box-shadow: 0 6px 24px rgba(212, 255, 0, 0.35);
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .log-lift-pill.show { display: block; }
+  .log-lift-pill:active { transform: translateX(-50%) scale(0.97); }
+
+  /* Recovery banner (next-open reminder for unsaved backdated workout) */
+  .recovery-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .recovery-banner.show { display: flex; }
+  .recovery-banner .rb-text { flex: 1; min-width: 0; }
+  .recovery-banner .rb-text strong { color: var(--accent); font-weight: 700; }
+
+  .recovery-banner .rb-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .recovery-banner .rb-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
   }
 
   .session-info {
@@ -1276,7 +1388,9 @@
   <div class="header-top">
     <div class="logo">LIFT<span class="accent">.</span>LOG</div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <div class="date" id="dateDisplay"></div>
+      <button type="button" class="date" id="dateDisplay" onclick="openDatePicker()" aria-label="Pick date"></button>
+      <button type="button" class="today-pill" id="todayPill" onclick="resetActiveDateToToday()">← TODAY</button>
+      <input type="date" id="datePicker" class="date-picker-hidden" onchange="onDatePickerChange(event)">
       <button class="edit-toggle" id="dataToggle" onclick="openDataModal()" aria-label="Backup data">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -1309,11 +1423,19 @@
   <span id="totalCount" style="display:none"></span>
 </div>
 
+<div class="recovery-banner" id="recoveryBanner">
+  <span class="rb-text">Unsaved workout for <strong id="rbDate"></strong></span>
+  <button class="rb-btn primary" onclick="recoverPendingLog()">LOG LIFT</button>
+  <button class="rb-btn" onclick="recoverPendingDiscard()">DISMISS</button>
+</div>
+
 <div class="progress-strip">
   <div class="progress-fill" id="progressFill" style="width: 0%"></div>
 </div>
 
 <div class="edit-mode-banner">EDIT MODE</div>
+
+<button type="button" class="log-lift-pill" id="logLiftPill" onclick="logLiftPillTap()">LOG LIFT FOR <span id="llpDate"></span></button>
 
 <div class="container">
 
@@ -1336,6 +1458,19 @@
 
   <button class="add-btn" onclick="openAddGroupModal()">+ NEW GROUP</button>
 
+</div>
+
+<!-- Confirm Log (date change with unsaved ticks) Modal -->
+<div class="modal-backdrop" id="confirmLogModal">
+  <div class="modal">
+    <h3>LOG LIFT FOR <span id="confirmLogDate"></span>?</h3>
+    <p id="confirmLogStats" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-dim); margin-bottom:16px; letter-spacing:0.06em;"></p>
+    <div class="modal-buttons">
+      <button class="modal-btn" onclick="confirmLogCancel()">CANCEL</button>
+      <button class="modal-btn" onclick="confirmLogDiscard()">DISCARD</button>
+      <button class="modal-btn primary" onclick="confirmLogSave()">LOG LIFT</button>
+    </div>
+  </div>
 </div>
 
 <!-- Add Exercise Modal -->
@@ -1588,7 +1723,40 @@
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
   }
-  
+
+  // Active date — what date logSession() will write to. Resets to today on every reload.
+  let activeDate = todayKey();
+  let pendingDateChange = null; // queued date when modal is open
+
+  function activeDateKey() { return activeDate || todayKey(); }
+  function isToday() { return activeDateKey() === todayKey(); }
+
+  function formatDateLong(key) {
+    const d = new Date(key + 'T00:00:00');
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+  }
+  function formatDateShort(key) {
+    const d = new Date(key + 'T00:00:00');
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
+  }
+
+  function daysAgo(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function hasAnyTicks() {
+    return state.groups.some(g => g.exercises.some(e => e.done));
+  }
+
+  function clearAllTicks() {
+    state.groups.forEach(g => g.exercises.forEach(e => e.done = false));
+  }
+
   function sessionName(sessionId) {
     return ({1: 'LEGS', 2: 'CHEST + BACK', 3: 'ARMS'})[sessionId] || `SESSION ${sessionId}`;
   }
@@ -1662,9 +1830,22 @@
       tab.classList.toggle('active', parseInt(tab.dataset.session) === state.meta.session);
     });
     
-    const now = new Date();
-    document.getElementById('dateDisplay').textContent = 
-      now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    const dateEl = document.getElementById('dateDisplay');
+    dateEl.textContent = formatDateLong(activeDateKey());
+    dateEl.classList.toggle('backdated', !isToday());
+    const todayPill = document.getElementById('todayPill');
+    if (todayPill) todayPill.classList.toggle('show', !isToday());
+
+    // Sticky LOG LIFT pill — only when backdated, has ticks, and not yet logged for that date
+    const llPill = document.getElementById('logLiftPill');
+    if (llPill) {
+      const showLLP = !isToday() && hasAnyTicks() && !isSessionLoggedToday();
+      llPill.classList.toggle('show', showLLP);
+      if (showLLP) {
+        const llpDate = document.getElementById('llpDate');
+        if (llpDate) llpDate.textContent = formatDateShort(activeDateKey());
+      }
+    }
 
     const container = document.getElementById('groupsContainer');
     container.innerHTML = '';
@@ -1822,12 +2003,12 @@
   }
   
   function isSessionLoggedToday() {
-    const today = todayKey();
-    const month = today.slice(0, 7);
+    const date = activeDateKey();
+    const month = date.slice(0, 7);
     const sessionId = String(state.meta.session);
     const monthLog = state.log[month] || {};
     const sessionEntries = monthLog[sessionId] || [];
-    return sessionEntries.some(e => e.date === today);
+    return sessionEntries.some(e => e.date === date);
   }
   
   function updateSessionCompleteBar(total, done) {
@@ -1849,7 +2030,7 @@
     
     if (logged) {
       title.textContent = '✓ SESSION LOGGED';
-      meta.textContent = `${sessionName(state.meta.session)} · ${todayDisplay()}`;
+      meta.textContent = `${sessionName(state.meta.session)} · ${formatDateShort(activeDateKey())}`;
       action.textContent = 'UNLOG';
     } else if (eligible) {
       title.textContent = 'READY TO LOG';
@@ -1876,32 +2057,44 @@
   }
   
   function logSession() {
-    const today = todayKey();
-    const month = today.slice(0, 7);
+    const date = activeDateKey();
+    const month = date.slice(0, 7);
     const sessionId = String(state.meta.session);
     if (!state.log[month]) state.log[month] = {};
     if (!state.log[month][sessionId]) state.log[month][sessionId] = [];
-    
+
     // Snapshot current weights
     const weights = {};
     state.groups.forEach(g => g.exercises.forEach(e => {
-      weights[e.id] = { 
-        name: e.name, 
-        weight: parseFloat(e.weight) || 0, 
-        unit: e.unit || 'kg' 
+      weights[e.id] = {
+        name: e.name,
+        weight: parseFloat(e.weight) || 0,
+        unit: e.unit || 'kg'
       };
     }));
-    
-    state.log[month][sessionId].push({ date: today, weights });
+
+    // Dedupe: only one entry per date+session
+    if (!state.log[month][sessionId].some(e => e.date === date)) {
+      state.log[month][sessionId].push({ date, weights });
+    }
     saveState();
+
+    // Clear pending snapshot if it matched this date
+    try {
+      const raw = localStorage.getItem('liftlog_pending_backdate');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p.date === date) clearPendingBackdate();
+      }
+    } catch (e) {}
   }
-  
+
   function unlogSession() {
-    const today = todayKey();
-    const month = today.slice(0, 7);
+    const date = activeDateKey();
+    const month = date.slice(0, 7);
     const sessionId = String(state.meta.session);
     if (!state.log[month] || !state.log[month][sessionId]) return;
-    state.log[month][sessionId] = state.log[month][sessionId].filter(e => e.date !== today);
+    state.log[month][sessionId] = state.log[month][sessionId].filter(e => e.date !== date);
     saveState();
   }
   
@@ -1913,6 +2106,170 @@
     }
     render();
     if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+  }
+
+  // ----- Active date / backdate flow -----
+
+  function openDatePicker() {
+    const picker = document.getElementById('datePicker');
+    if (!picker) return;
+    picker.min = daysAgo(90);
+    picker.max = todayKey();
+    picker.value = activeDateKey();
+    // showPicker is more reliable on iOS Safari; fall back to focus+click
+    if (typeof picker.showPicker === 'function') {
+      try { picker.showPicker(); return; } catch (e) {}
+    }
+    picker.focus();
+    picker.click();
+  }
+
+  function onDatePickerChange(ev) {
+    const v = ev.target.value;
+    if (!v) return;
+    if (v < daysAgo(90) || v > todayKey()) return;
+    requestActiveDateChange(v);
+  }
+
+  function resetActiveDateToToday() {
+    requestActiveDateChange(todayKey());
+  }
+
+  function requestActiveDateChange(newKey) {
+    if (newKey === activeDateKey()) return;
+    // If unsaved ticks exist for the current backdated session, prompt
+    if (!isToday() && hasAnyTicks() && !isSessionLoggedToday()) {
+      pendingDateChange = newKey;
+      showConfirmLogModal();
+      return;
+    }
+    applyActiveDateChange(newKey);
+  }
+
+  function applyActiveDateChange(newKey) {
+    activeDate = newKey;
+    // If returning to today (or switching to a date with no in-flight backdate) and no ticks, clear pending
+    if (!hasAnyTicks() || isToday()) clearPendingBackdate();
+    render();
+  }
+
+  function showConfirmLogModal() {
+    const dateLabel = formatDateShort(activeDateKey());
+    document.getElementById('confirmLogDate').textContent = dateLabel;
+    let total = 0, done = 0;
+    state.groups.forEach(g => {
+      total += g.exercises.length;
+      done += g.exercises.filter(e => e.done).length;
+    });
+    document.getElementById('confirmLogStats').textContent =
+      `${done}/${total} exercises ticked`;
+    document.getElementById('confirmLogModal').classList.add('active');
+  }
+
+  function confirmLogCancel() {
+    pendingDateChange = null;
+    closeModal('confirmLogModal');
+  }
+
+  function confirmLogSave() {
+    closeModal('confirmLogModal');
+    logSession();
+    clearAllTicks();
+    saveState();
+    const next = pendingDateChange;
+    pendingDateChange = null;
+    if (next) activeDate = next;
+    clearPendingBackdate();
+    render();
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+  }
+
+  function confirmLogDiscard() {
+    closeModal('confirmLogModal');
+    clearAllTicks();
+    saveState();
+    const next = pendingDateChange;
+    pendingDateChange = null;
+    if (next) activeDate = next;
+    clearPendingBackdate();
+    render();
+  }
+
+  function logLiftPillTap() {
+    logSession();
+    clearAllTicks();
+    saveState();
+    activeDate = todayKey();
+    clearPendingBackdate();
+    render();
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+  }
+
+  // ----- Pending backdate snapshot (recovery on next open) -----
+
+  function savePendingBackdate() {
+    if (isToday()) { clearPendingBackdate(); return; }
+    if (!hasAnyTicks()) { clearPendingBackdate(); return; }
+    const date = activeDateKey();
+    const sessionId = String(state.meta.session);
+    // Don't track if already logged for that date
+    const month = date.slice(0, 7);
+    const entries = (state.log[month] && state.log[month][sessionId]) || [];
+    if (entries.some(e => e.date === date)) { clearPendingBackdate(); return; }
+    const weights = {};
+    state.groups.forEach(g => g.exercises.forEach(e => {
+      weights[e.id] = { name: e.name, weight: parseFloat(e.weight) || 0, unit: e.unit || 'kg' };
+    }));
+    try {
+      localStorage.setItem('liftlog_pending_backdate', JSON.stringify({ date, sessionId, weights }));
+    } catch (e) {}
+  }
+
+  function clearPendingBackdate() {
+    try { localStorage.removeItem('liftlog_pending_backdate'); } catch (e) {}
+  }
+
+  function showRecoveryBannerIfPending() {
+    const banner = document.getElementById('recoveryBanner');
+    if (!banner) return;
+    let raw = null;
+    try { raw = localStorage.getItem('liftlog_pending_backdate'); } catch (e) {}
+    if (!raw) { banner.classList.remove('show'); return; }
+    let p;
+    try { p = JSON.parse(raw); } catch (e) { clearPendingBackdate(); return; }
+    if (!p || !p.date) { clearPendingBackdate(); return; }
+    if (p.date === todayKey()) { clearPendingBackdate(); return; }
+    const month = p.date.slice(0, 7);
+    const entries = (state.log[month] && state.log[month][p.sessionId]) || [];
+    if (entries.some(e => e.date === p.date)) { clearPendingBackdate(); return; }
+    document.getElementById('rbDate').textContent = formatDateLong(p.date);
+    banner.classList.add('show');
+  }
+
+  function recoverPendingLog() {
+    let raw = null;
+    try { raw = localStorage.getItem('liftlog_pending_backdate'); } catch (e) {}
+    if (raw) {
+      try {
+        const p = JSON.parse(raw);
+        const month = p.date.slice(0, 7);
+        if (!state.log[month]) state.log[month] = {};
+        if (!state.log[month][p.sessionId]) state.log[month][p.sessionId] = [];
+        if (!state.log[month][p.sessionId].some(e => e.date === p.date)) {
+          state.log[month][p.sessionId].push({ date: p.date, weights: p.weights || {} });
+          saveState();
+        }
+      } catch (e) {}
+    }
+    clearPendingBackdate();
+    document.getElementById('recoveryBanner').classList.remove('show');
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+    render();
+  }
+
+  function recoverPendingDiscard() {
+    clearPendingBackdate();
+    document.getElementById('recoveryBanner').classList.remove('show');
   }
 
   function formatWeight(w) {
@@ -2010,6 +2367,7 @@
     const wasNotDone = !ex.done;
     ex.done = !ex.done;
     saveState();
+    savePendingBackdate();
     render();
     
     // Vibrate: triple-tap burst on done, single short on undone
@@ -2644,6 +3002,7 @@
   }
 
   render();
+  showRecoveryBannerIfPending();
 </script>
 
 <script>
