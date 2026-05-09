@@ -143,15 +143,6 @@
   .today-pill.show { display: inline-flex; }
   .today-pill:active { transform: scale(0.96); }
 
-  /* Hidden date input — opened programmatically */
-  .date-picker-hidden {
-    position: absolute;
-    width: 0;
-    height: 0;
-    opacity: 0;
-    pointer-events: none;
-  }
-
   /* Sticky LOG LIFT pill (backdate save reminder) */
   .log-lift-pill {
     display: none;
@@ -1490,19 +1481,6 @@
 
 </div>
 
-<!-- Confirm Log (date change with unsaved ticks) Modal -->
-<div class="modal-backdrop" id="confirmLogModal">
-  <div class="modal">
-    <h3>LOG LIFT FOR <span id="confirmLogDate"></span>?</h3>
-    <p id="confirmLogStats" style="font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text-dim); margin-bottom:16px; letter-spacing:0.06em;"></p>
-    <div class="modal-buttons">
-      <button class="modal-btn" onclick="confirmLogCancel()">CANCEL</button>
-      <button class="modal-btn" onclick="confirmLogDiscard()">DISCARD</button>
-      <button class="modal-btn primary" onclick="confirmLogSave()">LOG LIFT</button>
-    </div>
-  </div>
-</div>
-
 <!-- Add Exercise Modal -->
 <div class="modal-backdrop" id="addExerciseModal">
   <div class="modal">
@@ -1756,7 +1734,6 @@
 
   // Active date — what date logSession() will write to. Resets to today on every reload.
   let activeDate = todayKey();
-  let pendingDateChange = null; // queued date when modal is open
 
   function activeDateKey() { return activeDate || todayKey(); }
   function isToday() { return activeDateKey() === todayKey(); }
@@ -2148,20 +2125,6 @@
 
   // ----- Active date / backdate flow -----
 
-  function openDatePicker() {
-    const picker = document.getElementById('datePicker');
-    if (!picker) return;
-    picker.min = daysAgo(90);
-    picker.max = todayKey();
-    picker.value = activeDateKey();
-    // showPicker is more reliable on iOS Safari; fall back to focus+click
-    if (typeof picker.showPicker === 'function') {
-      try { picker.showPicker(); return; } catch (e) {}
-    }
-    picker.focus();
-    picker.click();
-  }
-
   function onDatePickerChange(ev) {
     const v = ev.target.value;
     if (!v) return;
@@ -2175,61 +2138,16 @@
 
   function requestActiveDateChange(newKey) {
     if (newKey === activeDateKey()) return;
-    // If unsaved ticks exist for the current backdated session, prompt
+    // If currently on a backdate with unsaved ticks, auto-save the backdated session first.
     if (!isToday() && hasAnyTicks() && !isSessionLoggedToday()) {
-      pendingDateChange = newKey;
-      showConfirmLogModal();
-      return;
+      logSession();
+      clearPendingBackdate();
+      if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
     }
-    applyActiveDateChange(newKey);
-  }
-
-  function applyActiveDateChange(newKey) {
+    // Always clear ticks on date change so the new date starts with a fresh slate.
+    clearAllTicks();
     activeDate = newKey;
-    // If returning to today (or switching to a date with no in-flight backdate) and no ticks, clear pending
-    if (!hasAnyTicks() || isToday()) clearPendingBackdate();
-    render();
-  }
-
-  function showConfirmLogModal() {
-    const dateLabel = formatDateShort(activeDateKey());
-    document.getElementById('confirmLogDate').textContent = dateLabel;
-    let total = 0, done = 0;
-    state.groups.forEach(g => {
-      total += g.exercises.length;
-      done += g.exercises.filter(e => e.done).length;
-    });
-    document.getElementById('confirmLogStats').textContent =
-      `${done}/${total} exercises ticked`;
-    document.getElementById('confirmLogModal').classList.add('active');
-  }
-
-  function confirmLogCancel() {
-    pendingDateChange = null;
-    closeModal('confirmLogModal');
-  }
-
-  function confirmLogSave() {
-    closeModal('confirmLogModal');
-    logSession();
-    clearAllTicks();
     saveState();
-    const next = pendingDateChange;
-    pendingDateChange = null;
-    if (next) activeDate = next;
-    clearPendingBackdate();
-    render();
-    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
-  }
-
-  function confirmLogDiscard() {
-    closeModal('confirmLogModal');
-    clearAllTicks();
-    saveState();
-    const next = pendingDateChange;
-    pendingDateChange = null;
-    if (next) activeDate = next;
-    clearPendingBackdate();
     render();
   }
 
@@ -2295,10 +2213,11 @@
         if (!state.log[month][p.sessionId]) state.log[month][p.sessionId] = [];
         if (!state.log[month][p.sessionId].some(e => e.date === p.date)) {
           state.log[month][p.sessionId].push({ date: p.date, weights: p.weights || {} });
-          saveState();
         }
       } catch (e) {}
     }
+    clearAllTicks();
+    saveState();
     clearPendingBackdate();
     document.getElementById('recoveryBanner').classList.remove('show');
     if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
@@ -2306,8 +2225,11 @@
   }
 
   function recoverPendingDiscard() {
+    clearAllTicks();
+    saveState();
     clearPendingBackdate();
     document.getElementById('recoveryBanner').classList.remove('show');
+    render();
   }
 
   function formatWeight(w) {
