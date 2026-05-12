@@ -1,7 +1,8 @@
-const CACHE = 'liftlog-v9';
+const CACHE = 'liftlog-v10';
 const ASSETS = [
   './',
   './index.html',
+  './app.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png'
@@ -26,20 +27,23 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
 
   const url = new URL(req.url);
+  const isAppHTML = url.pathname.endsWith('/app.html');
   const isHTML =
     req.mode === 'navigate' ||
     url.pathname.endsWith('/') ||
-    url.pathname.endsWith('/index.html');
+    url.pathname.endsWith('/index.html') ||
+    isAppHTML;
 
   if (isHTML) {
+    const cacheKey = isAppHTML ? './app.html' : './index.html';
     event.respondWith(
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put('./index.html', copy));
+          caches.open(CACHE).then((cache) => cache.put(cacheKey, copy));
           return res;
         })
-        .catch(() => caches.match('./index.html').then((r) => r || caches.match('./')))
+        .catch(() => caches.match(cacheKey).then((r) => r || caches.match('./')))
     );
     return;
   }

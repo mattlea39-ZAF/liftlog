@@ -1,0 +1,3168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>LIFT LOG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-2: #1c1c1c;
+    --border: #2a2a2a;
+    --text: #f5f5f5;
+    --text-dim: #888;
+    --accent: #d4ff00;
+    --accent-dark: #a8cc00;
+    --danger: #ff3b30;
+    --success: #34c759;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    min-height: 100vh;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    padding: var(--header-h, 130px) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 24px) env(safe-area-inset-left);
+    background-image: 
+      radial-gradient(circle at 20% 0%, rgba(212, 255, 0, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 80% 100%, rgba(212, 255, 0, 0.03) 0%, transparent 40%);
+  }
+
+  .header {
+    padding: calc(24px + env(safe-area-inset-top)) 20px 16px;
+    border-bottom: 1px solid var(--border);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 4px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .logo .accent { color: var(--accent); }
+
+  .date {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 4px 6px;
+    margin: -4px -6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .date:active { background: var(--surface-2); }
+
+  .date.backdated {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Native date input layered transparently over the date label so iOS opens the picker on tap */
+  .date input[type="date"] {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    border: 0;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    color: transparent;
+    font: inherit;
+  }
+  .date input[type="date"]::-webkit-date-and-time-value { color: transparent; }
+  .date input[type="date"]::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .today-pill {
+    display: none;
+    align-items: center;
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    margin-left: 6px;
+  }
+
+  .today-pill.show { display: inline-flex; }
+  .today-pill:active { transform: scale(0.96); }
+
+  /* Sticky LOG LIFT pill (backdate save reminder) */
+  .log-lift-pill {
+    display: none;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: calc(16px + env(safe-area-inset-bottom));
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    border-radius: 999px;
+    padding: 14px 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    z-index: 90;
+    box-shadow: 0 6px 24px rgba(212, 255, 0, 0.35);
+    white-space: nowrap;
+    max-width: calc(100vw - 32px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .log-lift-pill.show { display: block; }
+  .log-lift-pill:active { transform: translateX(-50%) scale(0.97); }
+
+  /* Recovery banner (next-open reminder for unsaved backdated workout) */
+  .recovery-banner {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--accent);
+    color: var(--text);
+    padding: 10px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .recovery-banner.show { display: flex; }
+  .recovery-banner .rb-text { flex: 1; min-width: 0; }
+  .recovery-banner .rb-text strong { color: var(--accent); font-weight: 700; }
+
+  .recovery-banner .rb-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .recovery-banner .rb-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .session-info {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .session-info span { color: var(--accent); font-weight: 700; }
+
+  .session-tabs {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  .session-tab {
+    flex: 1;
+    padding: 10px 4px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-dim);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  .session-tab.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .session-tab:active { transform: scale(0.97); }
+
+  .container { padding: 20px 16px; max-width: 600px; margin: 0 auto; }
+
+  .group {
+    margin-bottom: 28px;
+  }
+
+  .group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+
+  .group-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 26px;
+    letter-spacing: 0.08em;
+    line-height: 1;
+  }
+
+  .group-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
+
+  .group-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    background: var(--surface);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .exercise {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Keep inputs/textareas editable (selection re-enabled on edit fields) */
+  .exercise input,
+  .exercise textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
+    -webkit-touch-callout: default;
+  }
+
+  .exercise.done {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(212, 255, 0, 0.06), var(--surface));
+  }
+
+  .superset {
+    position: relative;
+    padding-left: 26px;
+    margin-bottom: 10px;
+  }
+
+  .superset-brace {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 20px;
+    pointer-events: none;
+  }
+
+  .superset-brace svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .superset::after {
+    content: 'SUPERSET';
+    position: absolute;
+    left: 24px;
+    top: -8px;
+    background: var(--bg);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    padding: 2px 6px;
+    z-index: 2;
+  }
+
+  .superset .exercise {
+    margin-bottom: 6px;
+  }
+
+  .superset .exercise:last-child {
+    margin-bottom: 0;
+  }
+
+  .exercise-row {
+    display: flex;
+    align-items: stretch;
+    min-height: 64px;
+  }
+
+  .exercise-num {
+    width: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    color: var(--text-dim);
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .exercise.done .exercise-num {
+    color: var(--accent);
+  }
+
+  .exercise-main {
+    flex: 1;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .exercise-name {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.22;
+    color: var(--text);
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: inherit;
+    width: 100%;
+    padding: 2px 0;
+    /* Wrap support for textarea */
+    resize: none;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .exercise-name:focus {
+    border-bottom: 1px solid var(--accent);
+  }
+
+  .exercise-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  .weight-control {
+    display: flex;
+    align-items: center;
+    border-left: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .weight-btn {
+    width: 28px;
+    height: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 18px;
+    font-weight: 300;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .weight-btn:active {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .weight-display {
+    min-width: 56px;
+    text-align: center;
+    padding: 0 2px;
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+  }
+
+  .weight-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+  }
+
+  .weight-unit {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-top: 2px;
+    letter-spacing: 0.1em;
+  }
+
+  .weight-input {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    color: var(--accent);
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    width: 50px;
+    padding: 0;
+  }
+
+  .exercise-actions {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+  }
+
+  .action-btn {
+    flex: 1;
+    padding: 10px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .action-btn:not(:last-child) { border-right: 1px solid var(--border); }
+  .action-btn:active { background: rgba(255,255,255,0.05); color: var(--text); }
+
+  /* MARK DONE button — satisfying tap */
+  .action-btn.done-btn {
+    position: relative;
+    overflow: hidden;
+    transition: color 0.2s ease, background 0.2s ease, font-weight 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .action-btn.done-btn:active {
+    background: rgba(212, 255, 0, 0.18);
+    color: var(--accent);
+  }
+
+  .action-btn.done-btn.active {
+    color: var(--bg);
+    background: var(--accent);
+    font-weight: 700;
+    text-shadow: 0 0 1px rgba(0,0,0,0.2);
+  }
+
+  .action-btn.done-btn.active:active {
+    background: var(--accent-dark);
+  }
+
+  /* Ripple from tap point */
+  .action-btn.done-btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(212, 255, 0, 0.4);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .action-btn.done-btn.ripple::after {
+    animation: doneRipple 0.55s ease-out;
+  }
+
+  @keyframes doneRipple {
+    0% { width: 0; height: 0; opacity: 0.7; }
+    100% { width: 280px; height: 280px; opacity: 0; }
+  }
+
+  /* Pulse on the whole exercise card when marked done */
+  @keyframes donePulse {
+    0% { transform: scale(1); }
+    35% { transform: scale(1.012); box-shadow: 0 0 24px rgba(212, 255, 0, 0.25); }
+    100% { transform: scale(1); }
+  }
+
+  .exercise.just-done {
+    animation: donePulse 0.45s ease-out;
+  }
+
+  .action-btn.linked { color: var(--accent); font-weight: 700; }
+  .action-btn.unit-btn { color: var(--accent); font-weight: 700; letter-spacing: 0.2em; }
+  .action-btn.delete:active { color: var(--danger); }
+
+  .add-btn {
+    width: 100%;
+    padding: 14px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: 12px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .add-btn:active {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .footer-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10, 10, 10, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    gap: 8px;
+    z-index: 99;
+  }
+
+  .footer-btn {
+    flex: 1;
+    padding: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .footer-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .footer-btn:active { transform: scale(0.97); }
+
+  .progress-strip {
+    height: 3px;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s;
+    box-shadow: 0 0 8px var(--accent);
+  }
+
+  .stats {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 4px 18px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--text);
+    line-height: 1;
+    margin-bottom: 2px;
+    display: block;
+  }
+
+  .stat-value.accent { color: var(--accent); }
+
+  /* Modal */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .modal-backdrop.active { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px calc(20px + env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 600px;
+    animation: slideUp 0.25s ease-out;
+  }
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+
+  .modal h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+  }
+
+  .modal-input, .modal-select {
+    width: 100%;
+    padding: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    margin-bottom: 12px;
+    outline: none;
+  }
+
+  .modal-input:focus, .modal-select:focus { border-color: var(--accent); }
+
+  .modal-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .modal-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .modal-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Session Complete Bar */
+  .session-complete-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    transition: all 0.2s;
+  }
+
+  .session-complete-bar.eligible {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(212, 255, 0, 0.08), var(--surface));
+  }
+
+  .session-complete-bar.logged {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: var(--bg);
+  }
+
+  .scb-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .scb-title { font-family: 'Bebas Neue', sans-serif; font-size: 16px; letter-spacing: 0.08em; line-height: 1; }
+  .scb-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; opacity: 0.85; letter-spacing: 0.05em; }
+  
+  .session-complete-bar:not(.logged) .scb-meta { color: var(--text-dim); }
+
+  .scb-action {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    margin-left: 12px;
+  }
+
+  .session-complete-bar.logged .scb-action {
+    background: rgba(0,0,0,0.2);
+    color: var(--bg);
+  }
+
+  .session-complete-bar:not(.eligible):not(.logged) .scb-action {
+    background: var(--surface-2);
+    color: var(--text-dim);
+    cursor: not-allowed;
+  }
+
+  .scb-action:active { transform: scale(0.95); }
+
+  /* Monthly Log Page */
+  .log-page {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 300;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  }
+
+  .log-page.active { display: flex; }
+
+  .log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 16px 16px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,10,0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .log-back {
+    width: 36px;
+    height: 36px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .log-back svg { width: 18px; height: 18px; }
+  .log-back:active { transform: scale(0.95); }
+
+  .log-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.1em;
+  }
+
+  .log-month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-month-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .log-month-btn:active { transform: scale(0.95); }
+
+  .log-month-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+
+  .log-content {
+    padding: 20px 16px 40px;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .log-stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+
+  .log-stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .log-stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .log-stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .log-section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.08em;
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .log-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
+
+  .log-session-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+  }
+
+  .log-session-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 0.08em;
+  }
+
+  .log-session-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .log-date-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .log-date-chip {
+    background: var(--surface-2);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .log-exercise-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    gap: 12px;
+  }
+
+  .log-exercise-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .log-exercise-progress {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+
+  .log-from { color: var(--text-dim); }
+  .log-arrow { color: var(--text-dim); }
+  .log-to { color: var(--text); font-weight: 700; }
+  .log-delta { 
+    background: var(--surface-2);
+    color: var(--accent);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .log-delta.zero { color: var(--text-dim); }
+  .log-delta.negative { color: var(--danger); }
+
+  .log-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.05em;
+    line-height: 1.6;
+  }
+
+  .install-hint {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    position: relative;
+  }
+
+  .install-hint strong { color: var(--accent); font-weight: 700; }
+
+  .install-hint .close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .reorder-controls {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .reorder-btn {
+    flex: 1;
+    width: 32px;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    padding: 0;
+  }
+
+  .reorder-btn:first-child { border-bottom: 1px solid var(--border); }
+  .reorder-btn:active { background: var(--accent); color: var(--bg); }
+  .reorder-btn:disabled { opacity: 0.25; cursor: default; }
+  .reorder-btn:disabled:active { background: transparent; color: var(--text-dim); }
+
+  .edit-toggle {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .edit-toggle.active {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+  }
+
+  .edit-toggle svg { width: 16px; height: 16px; }
+
+  .delete-overlay {
+    width: 44px;
+    background: var(--danger);
+    color: white;
+    border: none;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    font-family: 'Inter', sans-serif;
+    border-right: 1px solid var(--border);
+    flex-shrink: 0;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    pointer-events: auto;
+  }
+
+  body.edit-mode .delete-overlay { display: flex; }
+  body.edit-mode .delete-overlay:active { background: #cc1f15; }
+  body:not(.edit-mode) .delete-overlay { display: none !important; }
+
+  .edit-mode-banner {
+    display: none;
+    background: var(--danger);
+    color: white;
+    padding: 10px 16px;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  body.edit-mode .edit-mode-banner { display: block; }
+
+  /* Hide edit-only controls when not in edit mode */
+  body:not(.edit-mode) .reorder-controls { display: none; }
+  body:not(.edit-mode) .action-btn.link-btn { display: none; }
+  body:not(.edit-mode) .action-btn.unit-btn { display: none; }
+  body:not(.edit-mode) .add-btn { display: none; }
+  body:not(.edit-mode) .exercise-name { pointer-events: none; }
+  body:not(.edit-mode) .group-move-controls { display: none; }
+  body:not(.edit-mode) .edit-only-actions { display: none; }
+  
+  /* Hide non-edit controls when in edit mode */
+  body.edit-mode .done-bar { display: none; }
+
+  .done-bar {
+    width: 100%;
+    padding: 11px;
+    background: var(--surface-2);
+    border: none;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s, color 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .done-bar:active {
+    background: rgba(212, 255, 0, 0.18);
+    color: var(--accent);
+  }
+
+  .done-bar.active {
+    background: var(--accent);
+    color: var(--bg);
+    font-weight: 700;
+  }
+
+  .done-bar.active:active {
+    background: var(--accent-dark);
+  }
+
+  /* Ripple from tap point */
+  .done-bar::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(212, 255, 0, 0.4);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: 0;
+  }
+
+  .done-bar.ripple::after {
+    animation: doneRipple 0.55s ease-out;
+  }
+
+  .action-btn-spacer { flex: 1; }
+
+  /* Note indicator dot */
+  .note-indicator {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 8px;
+    height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(212, 255, 0, 0.6);
+    pointer-events: none;
+    display: none;
+    z-index: 3;
+  }
+
+  .exercise.has-note .note-indicator { display: block; }
+
+  /* Long-press feedback */
+  .exercise.long-press-feedback {
+    transform: scale(0.98);
+    box-shadow: 0 0 0 2px var(--accent), 0 0 20px rgba(212, 255, 0, 0.3);
+  }
+
+  /* Notes drawer */
+  .notes-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 250;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  .notes-backdrop.active { display: flex; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .notes-drawer {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 0 0;
+    padding: 8px 0 calc(20px + env(safe-area-inset-bottom));
+    width: 100%;
+    max-width: 600px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .notes-grabber {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 8px auto 16px;
+    flex-shrink: 0;
+  }
+
+  .notes-header {
+    padding: 0 20px 12px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .notes-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    margin-bottom: 4px;
+  }
+
+  .notes-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+    color: var(--text);
+  }
+
+  .notes-body {
+    padding: 16px 20px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .notes-textarea {
+    width: 100%;
+    min-height: 140px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .notes-textarea:focus { border-color: var(--accent); }
+  .notes-textarea::placeholder { color: var(--text-dim); font-style: italic; }
+
+  .notes-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 12px;
+    letter-spacing: 0.05em;
+  }
+
+  .notes-footer {
+    display: flex;
+    gap: 8px;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+
+  .notes-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.1s;
+  }
+
+  .notes-btn:active { transform: scale(0.96); }
+
+  .notes-btn.primary {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .notes-btn.danger { color: var(--danger); }
+
+  .group-move-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-right: 4px;
+  }
+
+  .group-move-btn {
+    width: 26px;
+    height: 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-size: 9px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .group-move-btn:active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .group-move-btn:disabled { opacity: 0.25; }
+  .group-move-btn:disabled:active { background: var(--surface); color: var(--text-dim); border-color: var(--border); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">LIFT<span class="accent">.</span>LOG</div>
+    <div style="display:flex; align-items:center; gap:8px;">
+      <label class="date" id="dateDisplay" aria-label="Pick date">
+        <span id="dateLabel"></span>
+        <input type="date" id="datePicker" onchange="onDatePickerChange(event)">
+      </label>
+      <button type="button" class="today-pill" id="todayPill" onclick="resetActiveDateToToday()">← TODAY</button>
+      <button class="edit-toggle" id="dataToggle" onclick="openDataModal()" aria-label="Backup data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </button>
+      <button class="edit-toggle" id="logToggle" onclick="openLogPage()" aria-label="Monthly log">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 3v18h18"/>
+          <path d="M7 14l4-4 4 4 5-5"/>
+        </svg>
+      </button>
+      <button class="edit-toggle" id="editToggle" onclick="toggleEditMode()" aria-label="Edit mode">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <div class="session-tabs" id="sessionTabs">
+    <button class="session-tab" data-session="1" onclick="switchSession(1)">LEGS</button>
+    <button class="session-tab" data-session="2" onclick="switchSession(2)">CHEST + BACK</button>
+    <button class="session-tab" data-session="3" onclick="switchSession(3)">ARMS</button>
+  </div>
+  <span id="sessionNum" style="display:none">1</span>
+  <span id="freqDisplay" style="display:none"></span>
+  <span id="completedCount" style="display:none"></span>
+  <span id="totalCount" style="display:none"></span>
+</div>
+
+<div class="recovery-banner" id="recoveryBanner">
+  <span class="rb-text">Unsaved workout for <strong id="rbDate"></strong></span>
+  <button class="rb-btn primary" onclick="recoverPendingLog()">LOG LIFT</button>
+  <button class="rb-btn" onclick="recoverPendingDiscard()">DISMISS</button>
+</div>
+
+<div class="progress-strip">
+  <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+</div>
+
+<div class="edit-mode-banner">EDIT MODE</div>
+
+<button type="button" class="log-lift-pill" id="logLiftPill" onclick="logLiftPillTap()">LOG LIFT FOR <span id="llpDate"></span></button>
+
+<div class="container">
+
+  <div class="install-hint" id="installHint">
+    <button class="close" onclick="dismissHint()">×</button>
+    <strong>ADD TO HOME SCREEN</strong><br>
+    iPhone: tap Share → Add to Home Screen.<br>
+    Android: tap menu → Install app / Add to Home screen.
+  </div>
+
+  <div id="sessionCompleteBar" class="session-complete-bar" style="display:none;">
+    <div class="scb-info">
+      <div class="scb-title" id="scbTitle">SESSION COMPLETE</div>
+      <div class="scb-meta" id="scbMeta">Logged for today</div>
+    </div>
+    <button class="scb-action" id="scbAction" onclick="toggleSessionLogged()">LOG</button>
+  </div>
+
+  <div id="groupsContainer"></div>
+
+  <button class="add-btn" onclick="openAddGroupModal()">+ NEW GROUP</button>
+
+</div>
+
+<!-- Add Exercise Modal -->
+<div class="modal-backdrop" id="addExerciseModal">
+  <div class="modal">
+    <h3>ADD EXERCISE</h3>
+    <input type="text" class="modal-input" id="newExerciseName" placeholder="Exercise name">
+    <input type="text" class="modal-input" id="newExerciseMeta" placeholder="Sets x reps (e.g. 4 x 15)">
+    <input type="number" class="modal-input" id="newExerciseWeight" placeholder="Weight (kg)" step="0.5">
+    <div class="modal-buttons">
+      <button class="modal-btn" onclick="closeModal('addExerciseModal')">CANCEL</button>
+      <button class="modal-btn primary" onclick="saveNewExercise()">ADD</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Group Modal -->
+<div class="modal-backdrop" id="addGroupModal">
+  <div class="modal">
+    <h3>NEW GROUP</h3>
+    <input type="text" class="modal-input" id="newGroupName" placeholder="e.g. SHOULDERS">
+    <div class="modal-buttons">
+      <button class="modal-btn" onclick="closeModal('addGroupModal')">CANCEL</button>
+      <button class="modal-btn primary" onclick="saveNewGroup()">CREATE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="modal-backdrop" id="settingsModal">
+  <div class="modal">
+    <h3>SETTINGS</h3>
+    <input type="text" class="modal-input" id="settingsFreq" placeholder="Frequency (e.g. 2x a week)">
+    <select class="modal-select" id="settingsSession">
+      <option value="1">Session 1</option>
+      <option value="2">Session 2</option>
+      <option value="3">Session 3</option>
+    </select>
+    <div class="modal-buttons">
+      <button class="modal-btn" onclick="exportData()">EXPORT</button>
+      <button class="modal-btn" onclick="closeModal('settingsModal')">CLOSE</button>
+      <button class="modal-btn primary" onclick="saveSettings()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div class="modal-backdrop" id="confirmDeleteModal">
+  <div class="modal">
+    <h3 style="color: var(--danger);">DELETE EXERCISE?</h3>
+    <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 8px; line-height: 1.5;">
+      You're about to permanently delete:
+    </p>
+    <p style="color: var(--text); font-size: 16px; font-weight: 600; margin-bottom: 20px; padding: 12px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border);" id="confirmDeleteName"></p>
+    <p style="color: var(--text-dim); font-size: 12px; margin-bottom: 16px;">This cannot be undone.</p>
+    <div class="modal-buttons">
+      <button class="modal-btn" id="confirmDeleteNo">CANCEL</button>
+      <button class="modal-btn" id="confirmDeleteYes" style="background: var(--danger); color: white; border-color: var(--danger); font-weight: 700;">DELETE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unsaved Edit Confirm Modal -->
+<div class="modal-backdrop" id="unsavedConfirmModal">
+  <div class="modal">
+    <h3>UNSAVED CHANGES</h3>
+    <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 20px; line-height: 1.5;">
+      You're in the middle of editing an exercise name. Save your changes, discard them, or stay here?
+    </p>
+    <div class="modal-buttons" style="flex-direction: column; gap: 8px;">
+      <button class="modal-btn primary" id="unsavedSave">SAVE & CONTINUE</button>
+      <button class="modal-btn" id="unsavedDiscard">DISCARD CHANGES</button>
+      <button class="modal-btn" id="unsavedCancel">STAY HERE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Notes Drawer (long-press exercise to open) -->
+<div class="notes-backdrop" id="notesBackdrop">
+  <div class="notes-drawer">
+    <div class="notes-grabber"></div>
+    <div class="notes-header">
+      <div class="notes-label">NOTES FOR</div>
+      <div class="notes-title" id="notesTitle">—</div>
+    </div>
+    <div class="notes-body">
+      <textarea class="notes-textarea" id="notesTextarea" placeholder="Form cue, weight progression, body feedback…"></textarea>
+      <div class="notes-meta" id="notesMeta"></div>
+    </div>
+    <div class="notes-footer">
+      <button class="notes-btn danger" id="notesDelete" onclick="deleteNote()">DELETE</button>
+      <button class="notes-btn" onclick="closeNotes()">CANCEL</button>
+      <button class="notes-btn primary" onclick="saveNote()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Data Backup Modal -->
+<div class="modal-backdrop" id="dataModal">
+  <div class="modal">
+    <h3>BACKUP DATA</h3>
+    <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 16px; line-height: 1.5;">
+      Save your full data (exercises, weights, completed sessions, monthly log) to a file.
+      Restore later or transfer to another device.
+    </p>
+    <div class="modal-buttons" style="flex-direction: column; gap: 8px;">
+      <button class="modal-btn primary" onclick="exportData()">⬇ DOWNLOAD BACKUP</button>
+      <button class="modal-btn" onclick="document.getElementById('importInput').click()">⬆ RESTORE FROM FILE</button>
+      <button class="modal-btn" onclick="closeModal('dataModal')">CLOSE</button>
+    </div>
+    <input type="file" id="importInput" accept="application/json,.json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<!-- Monthly Log Page (full screen overlay) -->
+<div class="log-page" id="logPage">
+  <div class="log-header">
+    <button class="log-back" onclick="closeLogPage()" aria-label="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </button>
+    <div class="log-title">MONTHLY LOG</div>
+    <div style="width:36px"></div>
+  </div>
+  
+  <div class="log-month-nav">
+    <button class="log-month-btn" onclick="changeLogMonth(-1)">‹</button>
+    <div class="log-month-label" id="logMonthLabel">—</div>
+    <button class="log-month-btn" onclick="changeLogMonth(1)">›</button>
+  </div>
+
+  <div class="log-content" id="logContent"></div>
+</div>
+
+<script>
+  // ---------- Default program from Matt's sheet ----------
+  // ---------- Default program ----------
+  // Shared warm up used across all sessions
+  const WARM_UP_EXERCISES = [
+    { name: 'Shoulder dislocations (band)', meta: '4 x 15', weight: 0, done: false },
+    { name: 'Rotator cuff (band)', meta: '4 x 15', weight: 0, done: false }
+  ];
+  
+  function buildWarmUp(sessionTag) {
+    return {
+      id: 'warmup-' + sessionTag,
+      name: 'WARM UP',
+      exercises: WARM_UP_EXERCISES.map((e, i) => ({
+        ...e,
+        id: 'w' + (i + 1) + '-' + sessionTag
+      }))
+    };
+  }
+  
+  // Session 1: LEGS
+  const SESSION_1_GROUPS = [
+    buildWarmUp('s1'),
+    {
+      id: 'legs-s1',
+      name: 'LEGS',
+      exercises: [
+        { id: 'l1-s1', name: 'One leg squat', meta: '4 x 15 each leg', weight: 0, done: false },
+        { id: 'l2-s1', name: 'Lying hip lifts (on ball)', meta: '4 x 15 each leg', weight: 0, done: false },
+        { id: 'l3-s1', name: 'Leg press', meta: '4 x 15 each leg', weight: 40, done: false },
+        { id: 'l4-s1', name: 'Step downs', meta: '4 x 15 each leg', weight: 0, done: false },
+        { id: 'l5-s1', name: 'Bosu squats', meta: '4 x 15', weight: 0, done: false }
+      ]
+    },
+    { id: 'abs-s1', name: 'ABDOMINALS', exercises: [] }
+  ];
+  
+  // Session 2: BACK + CHEST
+  const SESSION_2_GROUPS = [
+    buildWarmUp('s2'),
+    {
+      id: 'backchest-s2',
+      name: 'CHEST + BACK',
+      exercises: [
+        { id: 'b1-s2', name: 'Pull ups', meta: '4 x 15', weight: 0, done: false },
+        { id: 'b2-s2', name: 'Ball press', meta: '4 x 15', weight: 8, done: false },
+        { id: 'b3-s2', name: 'Bent over rows', meta: '4 x 15 (DB)', weight: 8, done: false },
+        { id: 'b4-s2', name: 'Incline DB press', meta: '4 x 15', weight: 8, done: false },
+        { id: 'b5-s2', name: 'Low row', meta: '4 x 15', weight: 25, done: false },
+        { id: 'b6-s2', name: 'Pec fly machine', meta: '4 x 15', weight: 20, done: false }
+      ]
+    },
+    { id: 'abs-s2', name: 'ABDOMINALS', exercises: [] }
+  ];
+  
+  // Session 3: BICEPS + TRICEPS
+  const SESSION_3_GROUPS = [
+    buildWarmUp('s3'),
+    {
+      id: 'arms-s3',
+      name: 'ARMS',
+      exercises: [
+        { id: 'a1-s3', name: 'Barbell curls', meta: '4 x 15 (F-2 bar)', weight: 2.5, done: false },
+        { id: 'a2-s3', name: 'Lying barbell extensions', meta: '4 x 15 (F-2 bar)', weight: 2.5, done: false },
+        { id: 'a3-s3', name: 'Preacher curls', meta: '4 x 15 (DB)', weight: 4, done: false },
+        { id: 'a4-s3', name: 'Seated DB extensions', meta: '4 x 10 (DB)', weight: 4, done: false },
+        { id: 'a5-s3', name: 'Incline hammer curls', meta: '4 x 10 (DB)', weight: 6, done: false },
+        { id: 'a6-s3', name: 'Tricep dips', meta: '4 x 10', weight: 0, done: false }
+      ]
+    },
+    { id: 'abs-s3', name: 'ABDOMINALS', exercises: [] }
+  ];
+  
+  // Helper kept for migration backward compatibility
+  function duplicateGroups(srcGroups, sessionTag) {
+    return srcGroups.map(g => ({
+      id: g.id.replace(/-s\d+$/, '') + '-' + sessionTag,
+      name: g.name,
+      exercises: g.exercises.map(e => ({
+        ...e,
+        id: e.id.replace(/-s\d+$/, '') + '-' + sessionTag,
+        done: false,
+        supersetId: undefined
+      }))
+    }));
+  }
+  
+  const DEFAULT_PROGRAM = {
+    meta: { session: 1, frequency: '2x a week' },
+    sessions: {
+      1: SESSION_1_GROUPS,
+      2: SESSION_2_GROUPS,
+      3: SESSION_3_GROUPS
+    },
+    // log: { "YYYY-MM": { sessionId: [ { date, weights: { exId: { weight, unit } } } ] } }
+    log: {}
+  };
+
+  const STORAGE_KEY = 'liftlog_v5';
+  const OLD_STORAGE_KEY = 'liftlog_v1';
+  let state = loadState();
+  resetTicksIfNewDay();
+  let currentGroupForAdd = null;
+  let currentLogMonth = monthKey(new Date());
+
+  // If the calendar day has changed since the app was last open, clear ticks across all sessions.
+  // This prevents yesterday's ticks from auto-logging onto today.
+  function resetTicksIfNewDay() {
+    const today = todayKey();
+    const last = state.meta && state.meta.lastActiveDate;
+    if (last !== today) {
+      if (state.sessions) {
+        [1, 2, 3].forEach(n => {
+          const groups = state.sessions[n];
+          if (!Array.isArray(groups)) return;
+          groups.forEach(g => g && Array.isArray(g.exercises) && g.exercises.forEach(e => { e.done = false; }));
+        });
+      }
+      if (!state.meta) state.meta = {};
+      state.meta.lastActiveDate = today;
+      saveState();
+    }
+  }
+  
+  function monthKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    return `${y}-${m}`;
+  }
+  
+  function todayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  // Active date — what date logSession() will write to. Resets to today on every reload.
+  let activeDate = todayKey();
+
+  function activeDateKey() { return activeDate || todayKey(); }
+  function isToday() { return activeDateKey() === todayKey(); }
+
+  function formatDateLong(key) {
+    const d = new Date(key + 'T00:00:00');
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+  }
+  function formatDateShort(key) {
+    const d = new Date(key + 'T00:00:00');
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
+  }
+
+  function daysAgo(n) {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function hasAnyTicks() {
+    return state.groups.some(g => g.exercises.some(e => e.done));
+  }
+
+  function clearAllTicks() {
+    state.groups.forEach(g => g.exercises.forEach(e => e.done = false));
+  }
+
+  function sessionName(sessionId) {
+    return ({1: 'LEGS', 2: 'CHEST + BACK', 3: 'ARMS'})[sessionId] || `SESSION ${sessionId}`;
+  }
+  
+  // Make state.groups always return the active session's groups
+  // (keeps all existing code working without changes)
+  function attachGroupsGetter(s) {
+    if (Object.getOwnPropertyDescriptor(s, 'groups')?.get) return s;
+    Object.defineProperty(s, 'groups', {
+      get() { 
+        const sid = String(this.meta.session);
+        if (!this.sessions[sid]) this.sessions[sid] = [];
+        return this.sessions[sid]; 
+      },
+      set(v) { 
+        const sid = String(this.meta.session);
+        this.sessions[sid] = v; 
+      },
+      configurable: true
+    });
+    return s;
+  }
+
+  function loadState() {
+    let s = null;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) s = JSON.parse(raw);
+    } catch (e) {}
+    
+    // Migration from v4: keep all data, just add empty log
+    if (!s) {
+      try {
+        const v4raw = localStorage.getItem('liftlog_v4');
+        if (v4raw) {
+          s = JSON.parse(v4raw);
+          if (!s.log) s.log = {};
+        }
+      } catch (e) {}
+    }
+    
+    if (!s) s = JSON.parse(JSON.stringify(DEFAULT_PROGRAM));
+    
+    // Safety: ensure sessions object exists with all 3 slots
+    if (!s.sessions) s.sessions = {};
+    if (!s.log) s.log = {};
+    const defaults = { 1: SESSION_1_GROUPS, 2: SESSION_2_GROUPS, 3: SESSION_3_GROUPS };
+    [1, 2, 3].forEach(n => {
+      if (!s.sessions[n]) s.sessions[n] = JSON.parse(JSON.stringify(defaults[n]));
+    });
+    
+    return attachGroupsGetter(s);
+  }
+
+  function saveState() {
+    try {
+      // Serialize sessions explicitly (Object.defineProperty getters don't serialize)
+      const toSave = { meta: state.meta, sessions: state.sessions, log: state.log };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    } catch (e) {}
+  }
+
+  function uid() { return Math.random().toString(36).slice(2, 9); }
+
+  function render() {
+    document.getElementById('sessionNum').textContent = state.meta.session;
+    document.getElementById('freqDisplay').textContent = state.meta.frequency.toUpperCase();
+    
+    // Highlight active session tab
+    document.querySelectorAll('.session-tab').forEach(tab => {
+      tab.classList.toggle('active', parseInt(tab.dataset.session) === state.meta.session);
+    });
+    
+    const dateEl = document.getElementById('dateDisplay');
+    const dateLabel = document.getElementById('dateLabel');
+    if (dateLabel) dateLabel.textContent = formatDateLong(activeDateKey());
+    dateEl.classList.toggle('backdated', !isToday());
+    const todayPill = document.getElementById('todayPill');
+    if (todayPill) todayPill.classList.toggle('show', !isToday());
+
+    const picker = document.getElementById('datePicker');
+    if (picker) {
+      picker.min = daysAgo(90);
+      picker.max = todayKey();
+      picker.value = activeDateKey();
+    }
+
+    // Sticky LOG LIFT pill — only when backdated, has ticks, and not yet logged for that date
+    const llPill = document.getElementById('logLiftPill');
+    if (llPill) {
+      const showLLP = !isToday() && hasAnyTicks() && !isSessionLoggedToday();
+      llPill.classList.toggle('show', showLLP);
+      if (showLLP) {
+        const llpDate = document.getElementById('llpDate');
+        if (llpDate) llpDate.textContent = formatDateShort(activeDateKey());
+      }
+    }
+
+    const container = document.getElementById('groupsContainer');
+    container.innerHTML = '';
+
+    let total = 0, done = 0, volume = 0;
+
+    state.groups.forEach((group, gIdx) => {
+      total += group.exercises.length;
+      done += group.exercises.filter(e => e.done).length;
+      volume += group.exercises.reduce((s, e) => s + (parseFloat(e.weight) || 0), 0);
+
+      const groupEl = document.createElement('div');
+      groupEl.className = 'group';
+
+      const isFirstGroup = gIdx === 0;
+      const isLastGroup = gIdx === state.groups.length - 1;
+      groupEl.innerHTML = `
+        <div class="group-header">
+          <div class="group-move-controls">
+            <button class="group-move-btn" ${isFirstGroup ? 'disabled' : ''} onclick="moveGroup('${group.id}',-1)" aria-label="Move group up">▲</button>
+            <button class="group-move-btn" ${isLastGroup ? 'disabled' : ''} onclick="moveGroup('${group.id}',1)" aria-label="Move group down">▼</button>
+          </div>
+          <div class="group-title">${escapeHtml(group.name)}</div>
+          <div class="group-line"></div>
+          <div class="group-count">${group.exercises.length}</div>
+        </div>
+        <div id="group-${group.id}"></div>
+        <button class="add-btn" style="margin-top:6px; padding:10px;" onclick="openAddExerciseModal('${group.id}')">+ ADD EXERCISE</button>
+      `;
+      container.appendChild(groupEl);
+
+      const exContainer = groupEl.querySelector(`#group-${group.id}`);
+      
+      // Build render units: either a single exercise or a superset group
+      const units = [];
+      let i = 0;
+      while (i < group.exercises.length) {
+        const ex = group.exercises[i];
+        if (ex.supersetId) {
+          const supersetItems = [ex];
+          let j = i + 1;
+          while (j < group.exercises.length && group.exercises[j].supersetId === ex.supersetId) {
+            supersetItems.push(group.exercises[j]);
+            j++;
+          }
+          if (supersetItems.length >= 2) {
+            units.push({ type: 'superset', items: supersetItems, startIdx: i });
+            i = j;
+            continue;
+          }
+        }
+        units.push({ type: 'single', item: ex, idx: i });
+        i++;
+      }
+
+      const renderExercise = (ex, eIdx, inSuperset, isLastInSuperset) => {
+        const isFirst = eIdx === 0;
+        const isLast = eIdx === group.exercises.length - 1;
+        const linkLabel = ex.supersetId 
+          ? (isLastInSuperset ? 'UNLINK' : 'LINKED') 
+          : (isLast ? '' : 'LINK ↓');
+        const unit = ex.unit || 'kg';
+        const isMin = unit === 'min';
+        // Main +/- step (was bigStep, now matches what was smallStep)
+        const step = isMin ? 0.25 : 0.5;
+        const stepLabel = isMin ? '15s' : '0.5';
+        const unitLabel = isMin ? 'MIN' : 'KG';
+        const exEl = document.createElement('div');
+        const hasNote = !!(ex.note && ex.note.trim());
+        exEl.className = 'exercise' + (ex.done ? ' done' : '') + (hasNote ? ' has-note' : '');
+        exEl.dataset.gid = group.id;
+        exEl.dataset.eid = ex.id;
+        exEl.innerHTML = `
+          <div class="note-indicator"></div>
+          <div class="exercise-row">
+            <button type="button" class="delete-overlay" onclick="deleteExercise('${group.id}','${ex.id}')" aria-label="Delete">×</button>
+            <div class="reorder-controls">
+              <button class="reorder-btn" ${isFirst ? 'disabled' : ''} onclick="moveExercise('${group.id}','${ex.id}',-1)">▲</button>
+              <button class="reorder-btn" ${isLast ? 'disabled' : ''} onclick="moveExercise('${group.id}','${ex.id}',1)">▼</button>
+            </div>
+            <div class="exercise-num">${eIdx + 1}</div>
+            <div class="exercise-main">
+              <textarea class="exercise-name" rows="1"
+                oninput="autosizeNameField(this)"
+                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                onchange="updateExerciseField('${group.id}','${ex.id}','name',this.value)">${escapeHtml(ex.name)}</textarea>
+              <input class="exercise-name exercise-meta" style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);"
+                value="${escapeAttr(ex.meta || '')}" 
+                onchange="updateExerciseField('${group.id}','${ex.id}','meta',this.value)">
+            </div>
+            <div class="weight-control">
+              <button class="weight-btn" onclick="adjustWeight('${group.id}','${ex.id}',-${step})">−</button>
+              <div class="weight-display" onclick="editWeight(this,'${group.id}','${ex.id}')">
+                <div class="weight-value">${formatValue(ex.weight, unit)}</div>
+                <div class="weight-unit">${unitLabel}</div>
+              </div>
+              <button class="weight-btn" onclick="adjustWeight('${group.id}','${ex.id}',${step})">+</button>
+            </div>
+          </div>
+          <div class="exercise-actions edit-only-actions">
+            ${linkLabel ? `<button class="action-btn link-btn ${ex.supersetId ? 'linked' : ''}" onclick="toggleSuperset('${group.id}','${ex.id}')">${linkLabel}</button>` : '<div class="action-btn-spacer"></div>'}
+            <button class="action-btn unit-btn" onclick="toggleUnit('${group.id}','${ex.id}')">${unitLabel}</button>
+          </div>
+          <button class="done-bar ${ex.done ? 'active' : ''}" onclick="toggleDone('${group.id}','${ex.id}')">
+            ${ex.done ? '✓ DONE' : 'MARK DONE'}
+          </button>
+        `;
+        return exEl;
+      };
+
+      units.forEach(unit => {
+        if (unit.type === 'superset') {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'superset';
+          
+          // Curly brace SVG - uses preserveAspectRatio='none' so it stretches with content
+          const brace = document.createElement('div');
+          brace.className = 'superset-brace';
+          brace.innerHTML = `
+            <svg viewBox="0 0 20 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M 18 2 
+                       Q 10 2, 10 12 
+                       L 10 46 
+                       Q 10 50, 4 50 
+                       Q 10 50, 10 54 
+                       L 10 88 
+                       Q 10 98, 18 98" 
+                    fill="none" 
+                    stroke="#d4ff00" 
+                    stroke-width="2" 
+                    stroke-linecap="round"
+                    vector-effect="non-scaling-stroke"/>
+            </svg>
+          `;
+          wrapper.appendChild(brace);
+          
+          unit.items.forEach((ex, k) => {
+            const eIdx = unit.startIdx + k;
+            const isLastInSet = k === unit.items.length - 1;
+            wrapper.appendChild(renderExercise(ex, eIdx, true, isLastInSet));
+          });
+          exContainer.appendChild(wrapper);
+        } else {
+          exContainer.appendChild(renderExercise(unit.item, unit.idx, false, false));
+        }
+      });
+    });
+
+    document.getElementById('completedCount').textContent = done;
+    document.getElementById('totalCount').textContent = total;
+    
+    const pct = total > 0 ? (done / total) * 100 : 0;
+    document.getElementById('progressFill').style.width = pct + '%';
+    
+    // Update Session Complete Bar + auto-log if eligible
+    updateSessionCompleteBar(total, done);
+
+    // Auto-size exercise name textareas to fit their wrapped content
+    requestAnimationFrame(autosizeAllNameFields);
+  }
+
+  function isSessionLoggedToday() {
+    const date = activeDateKey();
+    const month = date.slice(0, 7);
+    const sessionId = String(state.meta.session);
+    const monthLog = state.log[month] || {};
+    const sessionEntries = monthLog[sessionId] || [];
+    return sessionEntries.some(e => e.date === date);
+  }
+  
+  function updateSessionCompleteBar(total, done) {
+    const bar = document.getElementById('sessionCompleteBar');
+    if (!bar) return;
+    if (total === 0) { bar.style.display = 'none'; return; }
+    bar.style.display = 'flex';
+    
+    const pct = (done / total) * 100;
+    const eligible = pct >= 60;
+    const logged = isSessionLoggedToday();
+    
+    bar.classList.toggle('eligible', eligible && !logged);
+    bar.classList.toggle('logged', logged);
+    
+    const title = document.getElementById('scbTitle');
+    const meta = document.getElementById('scbMeta');
+    const action = document.getElementById('scbAction');
+    
+    if (logged) {
+      title.textContent = '✓ SESSION LOGGED';
+      meta.textContent = `${sessionName(state.meta.session)} · ${formatDateShort(activeDateKey())}`;
+      action.textContent = 'UNLOG';
+    } else if (eligible) {
+      title.textContent = 'READY TO LOG';
+      meta.textContent = `${done}/${total} done (${Math.round(pct)}%) — auto-logging…`;
+      action.textContent = 'LOG NOW';
+      // Auto-log on cross to 60%
+      autoLogIfEligible();
+    } else {
+      title.textContent = 'KEEP GOING';
+      meta.textContent = `${done}/${total} done · need 60% to log`;
+      action.textContent = 'LOG';
+    }
+  }
+  
+  function todayDisplay() {
+    return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
+  }
+  
+  function autoLogIfEligible() {
+    if (isSessionLoggedToday()) return;
+    logSession();
+    // Re-render on next tick so SCB reflects logged state
+    setTimeout(() => render(), 0);
+  }
+  
+  function logSession() {
+    const date = activeDateKey();
+    const month = date.slice(0, 7);
+    const sessionId = String(state.meta.session);
+    if (!state.log[month]) state.log[month] = {};
+    if (!state.log[month][sessionId]) state.log[month][sessionId] = [];
+
+    // Snapshot current weights
+    const weights = {};
+    state.groups.forEach(g => g.exercises.forEach(e => {
+      weights[e.id] = {
+        name: e.name,
+        weight: parseFloat(e.weight) || 0,
+        unit: e.unit || 'kg'
+      };
+    }));
+
+    // Dedupe: only one entry per date+session
+    if (!state.log[month][sessionId].some(e => e.date === date)) {
+      state.log[month][sessionId].push({ date, weights });
+    }
+    saveState();
+
+    // Clear pending snapshot if it matched this date
+    try {
+      const raw = localStorage.getItem('liftlog_pending_backdate');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p.date === date) clearPendingBackdate();
+      }
+    } catch (e) {}
+  }
+
+  function unlogSession() {
+    const date = activeDateKey();
+    const month = date.slice(0, 7);
+    const sessionId = String(state.meta.session);
+    if (!state.log[month] || !state.log[month][sessionId]) return;
+    state.log[month][sessionId] = state.log[month][sessionId].filter(e => e.date !== date);
+    saveState();
+  }
+  
+  function toggleSessionLogged() {
+    if (isSessionLoggedToday()) {
+      unlogSession();
+      // Full reset: clear ticks too so auto-log doesn't immediately re-fire at 60%+
+      clearAllTicks();
+      saveState();
+    } else {
+      logSession();
+    }
+    render();
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+  }
+
+  // ----- Active date / backdate flow -----
+
+  function onDatePickerChange(ev) {
+    const v = ev.target.value;
+    if (!v) return;
+    if (v < daysAgo(90) || v > todayKey()) return;
+    requestActiveDateChange(v);
+  }
+
+  function resetActiveDateToToday() {
+    requestActiveDateChange(todayKey());
+  }
+
+  function requestActiveDateChange(newKey) {
+    if (newKey === activeDateKey()) return;
+    // If currently on a backdate with unsaved ticks, auto-save the backdated session first.
+    if (!isToday() && hasAnyTicks() && !isSessionLoggedToday()) {
+      logSession();
+      clearPendingBackdate();
+      if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+    }
+    // Always clear ticks on date change so the new date starts with a fresh slate.
+    clearAllTicks();
+    activeDate = newKey;
+    saveState();
+    render();
+  }
+
+  function logLiftPillTap() {
+    logSession();
+    clearAllTicks();
+    saveState();
+    activeDate = todayKey();
+    clearPendingBackdate();
+    render();
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+  }
+
+  // ----- Pending backdate snapshot (recovery on next open) -----
+
+  function savePendingBackdate() {
+    if (isToday()) { clearPendingBackdate(); return; }
+    if (!hasAnyTicks()) { clearPendingBackdate(); return; }
+    const date = activeDateKey();
+    const sessionId = String(state.meta.session);
+    // Don't track if already logged for that date
+    const month = date.slice(0, 7);
+    const entries = (state.log[month] && state.log[month][sessionId]) || [];
+    if (entries.some(e => e.date === date)) { clearPendingBackdate(); return; }
+    const weights = {};
+    state.groups.forEach(g => g.exercises.forEach(e => {
+      weights[e.id] = { name: e.name, weight: parseFloat(e.weight) || 0, unit: e.unit || 'kg' };
+    }));
+    try {
+      localStorage.setItem('liftlog_pending_backdate', JSON.stringify({ date, sessionId, weights }));
+    } catch (e) {}
+  }
+
+  function clearPendingBackdate() {
+    try { localStorage.removeItem('liftlog_pending_backdate'); } catch (e) {}
+  }
+
+  function showRecoveryBannerIfPending() {
+    const banner = document.getElementById('recoveryBanner');
+    if (!banner) return;
+    let raw = null;
+    try { raw = localStorage.getItem('liftlog_pending_backdate'); } catch (e) {}
+    if (!raw) { banner.classList.remove('show'); return; }
+    let p;
+    try { p = JSON.parse(raw); } catch (e) { clearPendingBackdate(); return; }
+    if (!p || !p.date) { clearPendingBackdate(); return; }
+    if (p.date === todayKey()) { clearPendingBackdate(); return; }
+    const month = p.date.slice(0, 7);
+    const entries = (state.log[month] && state.log[month][p.sessionId]) || [];
+    if (entries.some(e => e.date === p.date)) { clearPendingBackdate(); return; }
+    document.getElementById('rbDate').textContent = formatDateLong(p.date);
+    banner.classList.add('show');
+  }
+
+  function recoverPendingLog() {
+    let raw = null;
+    try { raw = localStorage.getItem('liftlog_pending_backdate'); } catch (e) {}
+    if (raw) {
+      try {
+        const p = JSON.parse(raw);
+        const month = p.date.slice(0, 7);
+        if (!state.log[month]) state.log[month] = {};
+        if (!state.log[month][p.sessionId]) state.log[month][p.sessionId] = [];
+        if (!state.log[month][p.sessionId].some(e => e.date === p.date)) {
+          state.log[month][p.sessionId].push({ date: p.date, weights: p.weights || {} });
+        }
+      } catch (e) {}
+    }
+    clearAllTicks();
+    saveState();
+    clearPendingBackdate();
+    document.getElementById('recoveryBanner').classList.remove('show');
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+    render();
+  }
+
+  function recoverPendingDiscard() {
+    clearAllTicks();
+    saveState();
+    clearPendingBackdate();
+    document.getElementById('recoveryBanner').classList.remove('show');
+    render();
+  }
+
+  function formatWeight(w) {
+    const n = parseFloat(w) || 0;
+    if (n === 0) return '—';
+    return n % 1 === 0 ? n.toString() : n.toFixed(1);
+  }
+
+  function formatValue(val, unit) {
+    const n = parseFloat(val) || 0;
+    if (n === 0) return '—';
+    if (unit === 'min') {
+      // Show as M:SS when there are seconds, else just minutes
+      const totalSec = Math.round(n * 60);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      if (sec === 0) return String(min);
+      return `${min}:${String(sec).padStart(2, '0')}`;
+    }
+    return n % 1 === 0 ? n.toString() : n.toFixed(1);
+  }
+
+  function toggleUnit(gId, eId) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const ex = g.exercises.find(e => e.id === eId);
+    if (!ex) return;
+    const current = ex.unit || 'kg';
+    ex.unit = current === 'kg' ? 'min' : 'kg';
+    saveState();
+    render();
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function autosizeNameField(el) {
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  function autosizeAllNameFields() {
+    document.querySelectorAll('textarea.exercise-name').forEach(autosizeNameField);
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+  }
+  function escapeAttr(s) { return escapeHtml(s); }
+
+  function updateExerciseField(gId, eId, field, val) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const ex = g.exercises.find(e => e.id === eId);
+    if (!ex) return;
+    ex[field] = val;
+    saveState();
+  }
+
+  function adjustWeight(gId, eId, delta) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const ex = g.exercises.find(e => e.id === eId);
+    if (!ex) return;
+    let w = parseFloat(ex.weight) || 0;
+    w = Math.max(0, +(w + delta).toFixed(2));
+    ex.weight = w;
+    saveState();
+    render();
+  }
+
+  function editWeight(el, gId, eId) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const ex = g.exercises.find(e => e.id === eId);
+    if (!ex) return;
+    
+    const valEl = el.querySelector('.weight-value');
+    const current = parseFloat(ex.weight) || 0;
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.step = '0.5';
+    input.className = 'weight-input';
+    input.value = current;
+    valEl.replaceWith(input);
+    input.focus();
+    input.select();
+    
+    const commit = () => {
+      const v = parseFloat(input.value);
+      ex.weight = isNaN(v) ? 0 : Math.max(0, v);
+      saveState();
+      render();
+    };
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') input.blur();
+    });
+  }
+
+  function toggleDone(gId, eId) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const ex = g.exercises.find(e => e.id === eId);
+    if (!ex) return;
+    const wasNotDone = !ex.done;
+    ex.done = !ex.done;
+    saveState();
+    savePendingBackdate();
+    render();
+    
+    // Vibrate: triple-tap burst on done, single short on undone
+    if (navigator.vibrate) {
+      navigator.vibrate(wasNotDone ? [18, 30, 25] : [10]);
+    }
+    
+    // After render rebuilds DOM, find new button + card and trigger animations
+    requestAnimationFrame(() => {
+      const allBars = document.querySelectorAll('.done-bar');
+      let targetBtn = null, targetCard = null;
+      allBars.forEach(btn => {
+        if (btn.getAttribute('onclick')?.includes(`'${eId}'`)) {
+          targetBtn = btn;
+          targetCard = btn.closest('.exercise');
+        }
+      });
+      if (targetBtn) {
+        targetBtn.classList.remove('ripple');
+        void targetBtn.offsetWidth;
+        if (wasNotDone) targetBtn.classList.add('ripple');
+        setTimeout(() => targetBtn.classList.remove('ripple'), 600);
+      }
+      if (targetCard && wasNotDone) {
+        targetCard.classList.remove('just-done');
+        void targetCard.offsetWidth;
+        targetCard.classList.add('just-done');
+        setTimeout(() => targetCard.classList.remove('just-done'), 500);
+      }
+    });
+  }
+
+  function deleteExercise(gId, eId) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const ex = g.exercises.find(e => e.id === eId);
+    if (!ex) return;
+    
+    showConfirmDelete(ex.name, () => {
+      g.exercises = g.exercises.filter(e => e.id !== eId);
+      cleanOrphanSupersets(g);
+      saveState();
+      render();
+      if (navigator.vibrate) navigator.vibrate(15);
+    });
+  }
+
+  function showConfirmDelete(exerciseName, onConfirm) {
+    const modal = document.getElementById('confirmDeleteModal');
+    document.getElementById('confirmDeleteName').textContent = exerciseName;
+    modal.classList.add('active');
+    
+    const yesBtn = document.getElementById('confirmDeleteYes');
+    const noBtn = document.getElementById('confirmDeleteNo');
+    
+    const cleanup = () => {
+      modal.classList.remove('active');
+      yesBtn.replaceWith(yesBtn.cloneNode(true));
+      noBtn.replaceWith(noBtn.cloneNode(true));
+    };
+    
+    const handleYes = () => { cleanup(); onConfirm(); };
+    const handleNo = () => cleanup();
+    
+    document.getElementById('confirmDeleteYes').addEventListener('click', handleYes);
+    document.getElementById('confirmDeleteNo').addEventListener('click', handleNo);
+  }
+
+  function toggleEditMode() {
+    if (!confirmIfUnsavedEdit(() => toggleEditMode_real())) return;
+    toggleEditMode_real();
+  }
+  function toggleEditMode_real() {
+    document.body.classList.toggle('edit-mode');
+    document.getElementById('editToggle').classList.toggle('active');
+  }
+
+  function switchSession(n) {
+    if (!confirmIfUnsavedEdit(() => switchSession_real(n))) return;
+    switchSession_real(n);
+  }
+  function switchSession_real(n) {
+    state.meta.session = parseInt(n);
+    saveState();
+    render();
+    if (navigator.vibrate) navigator.vibrate(10);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Returns true if the action should proceed immediately,
+  // false if the action is being deferred until the user confirms via the modal.
+  function confirmIfUnsavedEdit(onProceed) {
+    const active = document.activeElement;
+    if (!active || (active.tagName !== 'INPUT' && active.tagName !== 'TEXTAREA') || !active.classList.contains('exercise-name')) return true;
+    const original = active.defaultValue;
+    const current = active.value;
+    if (original === current) return true;
+    
+    // Show confirm modal
+    showUnsavedConfirm(active, onProceed);
+    return false;
+  }
+  
+  function showUnsavedConfirm(inputEl, onProceed) {
+    const modal = document.getElementById('unsavedConfirmModal');
+    modal.classList.add('active');
+    
+    const saveBtn = document.getElementById('unsavedSave');
+    const discardBtn = document.getElementById('unsavedDiscard');
+    const cancelBtn = document.getElementById('unsavedCancel');
+    
+    const cleanup = () => {
+      modal.classList.remove('active');
+      saveBtn.replaceWith(saveBtn.cloneNode(true));
+      discardBtn.replaceWith(discardBtn.cloneNode(true));
+      cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+    };
+    
+    document.getElementById('unsavedSave').addEventListener('click', () => {
+      // Trigger the input's onchange to commit
+      inputEl.dispatchEvent(new Event('change'));
+      cleanup();
+      onProceed();
+    });
+    document.getElementById('unsavedDiscard').addEventListener('click', () => {
+      inputEl.value = inputEl.defaultValue;
+      cleanup();
+      onProceed();
+    });
+    document.getElementById('unsavedCancel').addEventListener('click', () => {
+      cleanup();
+      inputEl.focus();
+    });
+  }
+  
+  // Warn on app close / tab close / refresh when there's an unsaved edit
+  window.addEventListener('beforeunload', (e) => {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA') && active.classList.contains('exercise-name')) {
+      if (active.value !== active.defaultValue) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    }
+  });
+
+  function moveExercise(gId, eId, direction) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const idx = g.exercises.findIndex(e => e.id === eId);
+    if (idx === -1) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= g.exercises.length) return;
+    [g.exercises[idx], g.exercises[newIdx]] = [g.exercises[newIdx], g.exercises[idx]];
+    cleanOrphanSupersets(g);
+    saveState();
+    render();
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function moveGroup(gId, direction) {
+    const groups = state.groups;
+    const idx = groups.findIndex(g => g.id === gId);
+    if (idx === -1) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= groups.length) return;
+    [groups[idx], groups[newIdx]] = [groups[newIdx], groups[idx]];
+    state.groups = groups; // triggers setter to persist for current session
+    saveState();
+    render();
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function cleanOrphanSupersets(g) {
+    // For each supersetId, find consecutive runs. Items not in a run of 2+ get unlinked.
+    const counts = {};
+    g.exercises.forEach(e => {
+      if (e.supersetId) counts[e.supersetId] = (counts[e.supersetId] || 0) + 1;
+    });
+    // Walk and identify which positions are in valid consecutive runs
+    const validPositions = new Set();
+    let i = 0;
+    while (i < g.exercises.length) {
+      const ex = g.exercises[i];
+      if (ex.supersetId) {
+        let j = i;
+        while (j < g.exercises.length && g.exercises[j].supersetId === ex.supersetId) j++;
+        if (j - i >= 2) {
+          for (let k = i; k < j; k++) validPositions.add(k);
+        }
+        i = j;
+      } else {
+        i++;
+      }
+    }
+    g.exercises.forEach((e, idx) => {
+      if (e.supersetId && !validPositions.has(idx)) delete e.supersetId;
+    });
+  }
+
+  function toggleSuperset(gId, eId) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const idx = g.exercises.findIndex(e => e.id === eId);
+    if (idx === -1) return;
+    const ex = g.exercises[idx];
+    const next = g.exercises[idx + 1];
+
+    if (ex.supersetId) {
+      // Already linked — unlink this one
+      const sid = ex.supersetId;
+      delete ex.supersetId;
+      // If the remaining linked items shrink to 1, dissolve them too
+      const remaining = g.exercises.filter(e => e.supersetId === sid);
+      if (remaining.length < 2) {
+        remaining.forEach(e => delete e.supersetId);
+      }
+    } else {
+      // Link with the next exercise
+      if (!next) return;
+      // If next is already part of a superset, join that one. Otherwise create new.
+      const sid = next.supersetId || ('ss_' + uid());
+      ex.supersetId = sid;
+      next.supersetId = sid;
+    }
+    saveState();
+    render();
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function openAddExerciseModal(gId) {
+    currentGroupForAdd = gId;
+    document.getElementById('newExerciseName').value = '';
+    document.getElementById('newExerciseMeta').value = '4 x 15';
+    document.getElementById('newExerciseWeight').value = '';
+    document.getElementById('addExerciseModal').classList.add('active');
+    setTimeout(() => document.getElementById('newExerciseName').focus(), 100);
+  }
+
+  function saveNewExercise() {
+    const name = document.getElementById('newExerciseName').value.trim();
+    if (!name) return;
+    const meta = document.getElementById('newExerciseMeta').value.trim();
+    const weight = parseFloat(document.getElementById('newExerciseWeight').value) || 0;
+    
+    const g = state.groups.find(g => g.id === currentGroupForAdd);
+    if (!g) return;
+    g.exercises.push({ id: uid(), name, meta, weight, done: false });
+    saveState();
+    render();
+    closeModal('addExerciseModal');
+  }
+
+  function openAddGroupModal() {
+    document.getElementById('newGroupName').value = '';
+    document.getElementById('addGroupModal').classList.add('active');
+    setTimeout(() => document.getElementById('newGroupName').focus(), 100);
+  }
+
+  function saveNewGroup() {
+    const name = document.getElementById('newGroupName').value.trim();
+    if (!name) return;
+    state.groups.push({ id: uid(), name: name.toUpperCase(), exercises: [] });
+    saveState();
+    render();
+    closeModal('addGroupModal');
+  }
+
+  function openSettingsModal() {
+    document.getElementById('settingsFreq').value = state.meta.frequency;
+    document.getElementById('settingsSession').value = state.meta.session;
+    document.getElementById('settingsModal').classList.add('active');
+  }
+
+  function saveSettings() {
+    state.meta.frequency = document.getElementById('settingsFreq').value || '2x a week';
+    state.meta.session = parseInt(document.getElementById('settingsSession').value) || 1;
+    saveState();
+    render();
+    closeModal('settingsModal');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+  }
+
+  function resetDone() {
+    if (!confirm('Reset all completion marks for a fresh session?')) return;
+    state.groups.forEach(g => g.exercises.forEach(e => e.done = false));
+    saveState();
+    render();
+  }
+
+  function finishWorkout() {
+    const done = state.groups.flatMap(g => g.exercises).filter(e => e.done).length;
+    const total = state.groups.flatMap(g => g.exercises).length;
+    alert(`Workout logged.\n\n${done} / ${total} exercises completed.\n\nNext session: roll over and reset when ready.`);
+  }
+
+  function openDataModal() {
+    document.getElementById('dataModal').classList.add('active');
+  }
+  
+  function exportData() {
+    // Serialize without the getter
+    const toExport = { meta: state.meta, sessions: state.sessions, log: state.log };
+    const blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `liftlog-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  
+  // ---- Import sanitization helpers (defence against malicious/malformed backup files) ----
+  function clipStr(v, max) {
+    if (typeof v !== 'string') return '';
+    return v.slice(0, max);
+  }
+  function clampInt(v, lo, hi, fallback) {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(Math.max(n, lo), hi);
+  }
+  function clampNum(v, lo, hi, fallback) {
+    const n = parseFloat(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(Math.max(n, lo), hi);
+  }
+  function sanitizeExercise(e) {
+    if (!e || typeof e !== 'object') return null;
+    const out = {
+      id: clipStr(e.id, 64) || uid(),
+      name: clipStr(e.name, 200),
+      meta: clipStr(e.meta, 200),
+      weight: clampNum(e.weight, 0, 100000, 0),
+      done: !!e.done
+    };
+    if (typeof e.unit === 'string') out.unit = clipStr(e.unit, 16);
+    if (typeof e.note === 'string') out.note = clipStr(e.note, 2000);
+    if (typeof e.supersetId === 'string' && e.supersetId.length > 0) {
+      out.supersetId = clipStr(e.supersetId, 64);
+    }
+    return out;
+  }
+  function sanitizeGroup(g) {
+    if (!g || typeof g !== 'object') return null;
+    return {
+      id: clipStr(g.id, 64) || uid(),
+      name: clipStr(g.name, 200) || 'GROUP',
+      exercises: Array.isArray(g.exercises)
+        ? g.exercises.slice(0, 100).map(sanitizeExercise).filter(Boolean)
+        : []
+    };
+  }
+  function sanitizeLogEntry(en) {
+    if (!en || typeof en !== 'object') return null;
+    if (typeof en.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(en.date)) return null;
+    const weights = {};
+    if (en.weights && typeof en.weights === 'object') {
+      Object.keys(en.weights).slice(0, 200).forEach(k => {
+        const w = en.weights[k];
+        if (!w || typeof w !== 'object') return;
+        weights[clipStr(k, 64)] = {
+          name: clipStr(w.name, 200),
+          weight: clampNum(w.weight, 0, 100000, 0),
+          unit: clipStr(w.unit, 16) || 'kg'
+        };
+      });
+    }
+    return { date: en.date, weights };
+  }
+  function sanitizeImported(raw) {
+    if (!raw || typeof raw !== 'object') throw new Error('Backup root is not an object');
+    if (!raw.sessions || typeof raw.sessions !== 'object') throw new Error('Backup has no sessions');
+
+    const out = { meta: {}, sessions: {}, log: {} };
+
+    const m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
+    out.meta.session = clampInt(m.session, 1, 3, 1);
+    out.meta.frequency = clipStr(m.frequency, 64) || '2x a week';
+    if (typeof m.lastActiveDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.lastActiveDate)) {
+      out.meta.lastActiveDate = m.lastActiveDate;
+    }
+
+    [1, 2, 3].forEach(n => {
+      const arr = raw.sessions[n];
+      out.sessions[n] = Array.isArray(arr)
+        ? arr.slice(0, 50).map(sanitizeGroup).filter(Boolean)
+        : [];
+    });
+
+    if (raw.log && typeof raw.log === 'object') {
+      Object.keys(raw.log).slice(0, 600).forEach(month => {
+        if (!/^\d{4}-\d{2}$/.test(month)) return;
+        const monthLog = raw.log[month];
+        if (!monthLog || typeof monthLog !== 'object') return;
+        out.log[month] = {};
+        Object.keys(monthLog).forEach(sid => {
+          if (!/^[123]$/.test(sid)) return;
+          const entries = monthLog[sid];
+          if (!Array.isArray(entries)) return;
+          out.log[month][sid] = entries.slice(0, 200).map(sanitizeLogEntry).filter(Boolean);
+        });
+      });
+    }
+    return out;
+  }
+
+  function importData(event) {
+    const file = event.target.files[0];
+    event.target.value = ''; // reset for re-import even on error
+    if (!file) return;
+
+    // Size limit: workout backups should be tiny. Reject anything implausible to prevent DoS.
+    const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+    if (file.size > MAX_BYTES) {
+      alert('Backup file is too large (max 5 MB). This does not look like a Lift.Log backup.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      let parsed;
+      try {
+        parsed = JSON.parse(e.target.result);
+      } catch (err) {
+        alert('Could not read backup file: invalid JSON.');
+        return;
+      }
+      let clean;
+      try {
+        clean = sanitizeImported(parsed);
+      } catch (err) {
+        alert('That file does not look like a Lift.Log backup.');
+        return;
+      }
+      if (!confirm('This will REPLACE all your current data with the backup. Continue?')) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+      } catch (err) {
+        alert('Could not save imported data: ' + err.message);
+        return;
+      }
+      location.reload();
+    };
+    reader.onerror = () => alert('Could not read backup file.');
+    reader.readAsText(file);
+  }
+
+  function dismissHint() {
+    document.getElementById('installHint').style.display = 'none';
+    localStorage.setItem('liftlog_hint_dismissed', '1');
+  }
+
+  if (localStorage.getItem('liftlog_hint_dismissed')) {
+    document.getElementById('installHint').style.display = 'none';
+  }
+
+  // Close modals on backdrop click
+  document.querySelectorAll('.modal-backdrop').forEach(m => {
+    m.addEventListener('click', (e) => {
+      if (e.target === m) m.classList.remove('active');
+    });
+  });
+
+  // ---------- Notes (long-press an exercise) ----------
+  let currentNoteGid = null;
+  let currentNoteEid = null;
+  let notePressTimer = null;
+  let notePressedCard = null;
+  let notePressMoved = false;
+  let notePressStartXY = null;
+  
+  function findExercise(gId, eId) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return null;
+    return g.exercises.find(e => e.id === eId) || null;
+  }
+  
+  function openNotes(gId, eId) {
+    const ex = findExercise(gId, eId);
+    if (!ex) return;
+    currentNoteGid = gId;
+    currentNoteEid = eId;
+    document.getElementById('notesTitle').textContent = ex.name;
+    const existing = ex.note || '';
+    const ta = document.getElementById('notesTextarea');
+    ta.value = existing;
+    document.getElementById('notesMeta').textContent = existing ? `${existing.length} chars` : 'No note yet — start typing';
+    document.getElementById('notesDelete').style.visibility = existing ? 'visible' : 'hidden';
+    document.getElementById('notesBackdrop').classList.add('active');
+    setTimeout(() => ta.focus(), 300);
+  }
+  
+  function closeNotes() {
+    document.getElementById('notesBackdrop').classList.remove('active');
+    currentNoteGid = null;
+    currentNoteEid = null;
+  }
+  
+  function saveNote() {
+    if (!currentNoteEid) return;
+    const ex = findExercise(currentNoteGid, currentNoteEid);
+    if (!ex) return;
+    const v = document.getElementById('notesTextarea').value.trim();
+    if (v) ex.note = v; else delete ex.note;
+    saveState();
+    render();
+    closeNotes();
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+  
+  function deleteNote() {
+    if (!currentNoteEid) return;
+    if (!confirm('Delete this note?')) return;
+    const ex = findExercise(currentNoteGid, currentNoteEid);
+    if (!ex) return;
+    delete ex.note;
+    saveState();
+    render();
+    closeNotes();
+  }
+  
+  // Long-press detection via event delegation on the groups container
+  function startLongPress(e, card) {
+    notePressedCard = card;
+    notePressMoved = false;
+    const t = e.touches ? e.touches[0] : e;
+    notePressStartXY = { x: t.clientX, y: t.clientY };
+    notePressTimer = setTimeout(() => {
+      if (notePressMoved) return;
+      card.classList.add('long-press-feedback');
+      if (navigator.vibrate) navigator.vibrate(30);
+      setTimeout(() => {
+        card.classList.remove('long-press-feedback');
+        const gId = card.dataset.gid;
+        const eId = card.dataset.eid;
+        if (gId && eId) openNotes(gId, eId);
+      }, 150);
+    }, 500);
+  }
+  
+  function moveLongPress(e) {
+    if (!notePressStartXY) return;
+    const t = e.touches ? e.touches[0] : e;
+    const dx = Math.abs(t.clientX - notePressStartXY.x);
+    const dy = Math.abs(t.clientY - notePressStartXY.y);
+    if (dx > 8 || dy > 8) {
+      notePressMoved = true;
+      cancelLongPress();
+    }
+  }
+  
+  function cancelLongPress() {
+    clearTimeout(notePressTimer);
+    if (notePressedCard) notePressedCard.classList.remove('long-press-feedback');
+    notePressedCard = null;
+    notePressStartXY = null;
+  }
+  
+  // Attach to document — works across re-renders
+  document.addEventListener('touchstart', (e) => {
+    const card = e.target.closest('.exercise');
+    if (!card) return;
+    // Don't trigger long-press if user is interacting with a button or input
+    if (e.target.closest('button, input, textarea')) return;
+    // Skip in edit mode (user is editing things, not adding notes)
+    if (document.body.classList.contains('edit-mode')) return;
+    startLongPress(e, card);
+  }, { passive: true });
+  
+  document.addEventListener('touchmove', moveLongPress, { passive: true });
+  document.addEventListener('touchend', cancelLongPress);
+  document.addEventListener('touchcancel', cancelLongPress);
+  
+  document.addEventListener('mousedown', (e) => {
+    const card = e.target.closest('.exercise');
+    if (!card) return;
+    if (e.target.closest('button, input, textarea')) return;
+    if (document.body.classList.contains('edit-mode')) return;
+    startLongPress(e, card);
+  });
+  document.addEventListener('mousemove', moveLongPress);
+  document.addEventListener('mouseup', cancelLongPress);
+  document.addEventListener('mouseleave', cancelLongPress);
+  
+  // Prevent context menu on long-press of cards
+  document.addEventListener('contextmenu', (e) => {
+    if (e.target.closest('.exercise')) e.preventDefault();
+  });
+  
+  // Backdrop click closes drawer
+  document.getElementById('notesBackdrop').addEventListener('click', (e) => {
+    if (e.target.id === 'notesBackdrop') closeNotes();
+  });
+
+  // ---------- Monthly Log ----------
+  function openLogPage() {
+    currentLogMonth = monthKey(new Date());
+    document.getElementById('logPage').classList.add('active');
+    renderLogPage();
+  }
+  
+  function closeLogPage() {
+    document.getElementById('logPage').classList.remove('active');
+  }
+  
+  function changeLogMonth(direction) {
+    const [y, m] = currentLogMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + direction, 1);
+    currentLogMonth = monthKey(d);
+    renderLogPage();
+  }
+  
+  function formatMonthLabel(key) {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, m - 1, 1);
+    return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }).toUpperCase();
+  }
+  
+  function renderLogPage() {
+    document.getElementById('logMonthLabel').textContent = formatMonthLabel(currentLogMonth);
+    
+    const monthLog = state.log[currentLogMonth] || {};
+    const content = document.getElementById('logContent');
+    
+    // Stats
+    let totalSessions = 0;
+    const perSessionCounts = {};
+    [1, 2, 3].forEach(sid => {
+      const entries = monthLog[sid] || [];
+      perSessionCounts[sid] = entries.length;
+      totalSessions += entries.length;
+    });
+    
+    // Build per-exercise progress: first weight vs last weight in this month
+    // Aggregated across all session entries in the month
+    const exerciseProgress = {}; // { exId: { name, unit, first, last, sessionId } }
+    [1, 2, 3].forEach(sid => {
+      const entries = (monthLog[sid] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+      entries.forEach(entry => {
+        Object.entries(entry.weights || {}).forEach(([exId, data]) => {
+          if (!exerciseProgress[exId]) {
+            exerciseProgress[exId] = { 
+              name: data.name, 
+              unit: data.unit, 
+              first: data.weight, 
+              last: data.weight,
+              sessionId: sid
+            };
+          } else {
+            exerciseProgress[exId].last = data.weight;
+            exerciseProgress[exId].unit = data.unit;
+          }
+        });
+      });
+    });
+    
+    let html = `
+      <div class="log-stat-row">
+        <div class="log-stat">
+          <div class="log-stat-value">${totalSessions}</div>
+          <div class="log-stat-label">SESSIONS</div>
+        </div>
+        <div class="log-stat">
+          <div class="log-stat-value">${Object.keys(exerciseProgress).length}</div>
+          <div class="log-stat-label">EXERCISES</div>
+        </div>
+        <div class="log-stat">
+          <div class="log-stat-value">${countProgressed(exerciseProgress)}</div>
+          <div class="log-stat-label">IMPROVED</div>
+        </div>
+      </div>
+    `;
+    
+    if (totalSessions === 0) {
+      html += `<div class="log-empty">No sessions logged this month.<br><br>Mark exercises done in your workout to auto-log a session, or tap the LOG button at the top of any session screen.</div>`;
+      content.innerHTML = html;
+      return;
+    }
+    
+    // Per-session breakdown
+    html += `<div class="log-section-title">SESSIONS</div>`;
+    [1, 2, 3].forEach(sid => {
+      const count = perSessionCounts[sid];
+      if (count === 0) return;
+      const entries = (monthLog[sid] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+      const dateChips = entries.map(e => {
+        const d = new Date(e.date + 'T00:00:00');
+        const day = d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase();
+        const dayNum = d.getDate();
+        return `<span class="log-date-chip">${day} ${dayNum}</span>`;
+      }).join('');
+      html += `
+        <div class="log-session-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="log-session-name">${sessionName(sid)}</div>
+            <div class="log-session-count">×${count}</div>
+          </div>
+          <div class="log-date-chips">${dateChips}</div>
+        </div>
+      `;
+    });
+    
+    // Per-exercise progress
+    html += `<div class="log-section-title">PROGRESS</div>`;
+    
+    // Group by session
+    [1, 2, 3].forEach(sid => {
+      const exForSession = Object.entries(exerciseProgress).filter(([_, v]) => v.sessionId === sid);
+      if (exForSession.length === 0) return;
+      
+      html += `<div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; margin: 12px 4px 6px;">${sessionName(sid)}</div>`;
+      
+      exForSession.forEach(([exId, data]) => {
+        const delta = data.last - data.first;
+        const deltaClass = delta > 0 ? '' : (delta < 0 ? 'negative' : 'zero');
+        const deltaText = delta === 0 ? '—' : (delta > 0 ? '+' : '') + formatValue(Math.abs(delta), data.unit) + ' ' + (data.unit === 'min' ? 'min' : 'kg');
+        const fromText = formatValue(data.first, data.unit) + (data.unit === 'min' ? ' min' : ' kg');
+        const toText = formatValue(data.last, data.unit) + (data.unit === 'min' ? ' min' : ' kg');
+        
+        html += `
+          <div class="log-exercise-row">
+            <div class="log-exercise-name">${escapeHtml(data.name)}</div>
+            <div class="log-exercise-progress">
+              <span class="log-from">${fromText}</span>
+              <span class="log-arrow">→</span>
+              <span class="log-to">${toText}</span>
+              <span class="log-delta ${deltaClass}">${deltaText}</span>
+            </div>
+          </div>
+        `;
+      });
+    });
+    
+    content.innerHTML = html;
+  }
+  
+  function countProgressed(progress) {
+    return Object.values(progress).filter(p => p.last > p.first).length;
+  }
+
+  render();
+  showRecoveryBannerIfPending();
+</script>
+
+<script>
+  // Block iOS pinch-to-zoom and double-tap-to-zoom (viewport meta is ignored on iOS 10+)
+  document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+  (function blockDoubleTapZoom() {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 350) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
+  })();
+
+  (function syncHeaderHeight() {
+    const header = document.querySelector('.header');
+    if (!header) return;
+    const apply = () => {
+      const h = header.offsetHeight;
+      if (h) document.documentElement.style.setProperty('--header-h', h + 'px');
+    };
+    apply();
+    window.addEventListener('resize', apply);
+    window.addEventListener('orientationchange', apply);
+    if (window.ResizeObserver) new ResizeObserver(apply).observe(header);
+  })();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+  }
+</script>
+
+</body>
+</html>
