@@ -2714,6 +2714,9 @@
     };
     if (typeof e.unit === 'string') out.unit = clipStr(e.unit, 16);
     if (typeof e.note === 'string') out.note = clipStr(e.note, 2000);
+    if (typeof e.supersetId === 'string' && e.supersetId.length > 0) {
+      out.supersetId = clipStr(e.supersetId, 64);
+    }
     return out;
   }
   function sanitizeGroup(g) {
