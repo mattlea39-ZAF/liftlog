@@ -306,6 +306,17 @@
     overflow: hidden;
     transition: border-color 0.2s, transform 0.2s;
     position: relative;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Keep inputs/textareas editable (selection re-enabled on edit fields) */
+  .exercise input,
+  .exercise textarea {
+    -webkit-user-select: auto;
+    user-select: auto;
+    -webkit-touch-callout: default;
   }
 
   .exercise.done {
