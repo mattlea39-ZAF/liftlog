@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; manifest-src 'self'; worker-src 'self'">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1721,8 +1722,28 @@
   const STORAGE_KEY = 'liftlog_v5';
   const OLD_STORAGE_KEY = 'liftlog_v1';
   let state = loadState();
+  resetTicksIfNewDay();
   let currentGroupForAdd = null;
   let currentLogMonth = monthKey(new Date());
+
+  // If the calendar day has changed since the app was last open, clear ticks across all sessions.
+  // This prevents yesterday's ticks from auto-logging onto today.
+  function resetTicksIfNewDay() {
+    const today = todayKey();
+    const last = state.meta && state.meta.lastActiveDate;
+    if (last !== today) {
+      if (state.sessions) {
+        [1, 2, 3].forEach(n => {
+          const groups = state.sessions[n];
+          if (!Array.isArray(groups)) return;
+          groups.forEach(g => g && Array.isArray(g.exercises) && g.exercises.forEach(e => { e.done = false; }));
+        });
+      }
+      if (!state.meta) state.meta = {};
+      state.meta.lastActiveDate = today;
+      saveState();
+    }
+  }
   
   function monthKey(date) {
     const y = date.getFullYear();
@@ -2127,6 +2148,9 @@
   function toggleSessionLogged() {
     if (isSessionLoggedToday()) {
       unlogSession();
+      // Full reset: clear ticks too so auto-log doesn't immediately re-fire at 60%+
+      clearAllTicks();
+      saveState();
     } else {
       logSession();
     }
@@ -2664,29 +2688,137 @@
     URL.revokeObjectURL(url);
   }
   
+  // ---- Import sanitization helpers (defence against malicious/malformed backup files) ----
+  function clipStr(v, max) {
+    if (typeof v !== 'string') return '';
+    return v.slice(0, max);
+  }
+  function clampInt(v, lo, hi, fallback) {
+    const n = parseInt(v, 10);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(Math.max(n, lo), hi);
+  }
+  function clampNum(v, lo, hi, fallback) {
+    const n = parseFloat(v);
+    if (!Number.isFinite(n)) return fallback;
+    return Math.min(Math.max(n, lo), hi);
+  }
+  function sanitizeExercise(e) {
+    if (!e || typeof e !== 'object') return null;
+    const out = {
+      id: clipStr(e.id, 64) || uid(),
+      name: clipStr(e.name, 200),
+      meta: clipStr(e.meta, 200),
+      weight: clampNum(e.weight, 0, 100000, 0),
+      done: !!e.done
+    };
+    if (typeof e.unit === 'string') out.unit = clipStr(e.unit, 16);
+    if (typeof e.note === 'string') out.note = clipStr(e.note, 2000);
+    return out;
+  }
+  function sanitizeGroup(g) {
+    if (!g || typeof g !== 'object') return null;
+    return {
+      id: clipStr(g.id, 64) || uid(),
+      name: clipStr(g.name, 200) || 'GROUP',
+      exercises: Array.isArray(g.exercises)
+        ? g.exercises.slice(0, 100).map(sanitizeExercise).filter(Boolean)
+        : []
+    };
+  }
+  function sanitizeLogEntry(en) {
+    if (!en || typeof en !== 'object') return null;
+    if (typeof en.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(en.date)) return null;
+    const weights = {};
+    if (en.weights && typeof en.weights === 'object') {
+      Object.keys(en.weights).slice(0, 200).forEach(k => {
+        const w = en.weights[k];
+        if (!w || typeof w !== 'object') return;
+        weights[clipStr(k, 64)] = {
+          name: clipStr(w.name, 200),
+          weight: clampNum(w.weight, 0, 100000, 0),
+          unit: clipStr(w.unit, 16) || 'kg'
+        };
+      });
+    }
+    return { date: en.date, weights };
+  }
+  function sanitizeImported(raw) {
+    if (!raw || typeof raw !== 'object') throw new Error('Backup root is not an object');
+    if (!raw.sessions || typeof raw.sessions !== 'object') throw new Error('Backup has no sessions');
+
+    const out = { meta: {}, sessions: {}, log: {} };
+
+    const m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
+    out.meta.session = clampInt(m.session, 1, 3, 1);
+    out.meta.frequency = clipStr(m.frequency, 64) || '2x a week';
+    if (typeof m.lastActiveDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.lastActiveDate)) {
+      out.meta.lastActiveDate = m.lastActiveDate;
+    }
+
+    [1, 2, 3].forEach(n => {
+      const arr = raw.sessions[n];
+      out.sessions[n] = Array.isArray(arr)
+        ? arr.slice(0, 50).map(sanitizeGroup).filter(Boolean)
+        : [];
+    });
+
+    if (raw.log && typeof raw.log === 'object') {
+      Object.keys(raw.log).slice(0, 600).forEach(month => {
+        if (!/^\d{4}-\d{2}$/.test(month)) return;
+        const monthLog = raw.log[month];
+        if (!monthLog || typeof monthLog !== 'object') return;
+        out.log[month] = {};
+        Object.keys(monthLog).forEach(sid => {
+          if (!/^[123]$/.test(sid)) return;
+          const entries = monthLog[sid];
+          if (!Array.isArray(entries)) return;
+          out.log[month][sid] = entries.slice(0, 200).map(sanitizeLogEntry).filter(Boolean);
+        });
+      });
+    }
+    return out;
+  }
+
   function importData(event) {
     const file = event.target.files[0];
+    event.target.value = ''; // reset for re-import even on error
     if (!file) return;
+
+    // Size limit: workout backups should be tiny. Reject anything implausible to prevent DoS.
+    const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+    if (file.size > MAX_BYTES) {
+      alert('Backup file is too large (max 5 MB). This does not look like a Lift.Log backup.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = (e) => {
+      let parsed;
       try {
-        const imported = JSON.parse(e.target.result);
-        if (!imported.sessions) {
-          alert('That file does not look like a Lift.Log backup.');
-          return;
-        }
-        if (!confirm('This will REPLACE all your current data with the backup. Continue?')) return;
-        if (!imported.log) imported.log = {};
-        if (!imported.meta) imported.meta = { session: 1, frequency: '2x a week' };
-        // Save and reload
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
-        location.reload();
+        parsed = JSON.parse(e.target.result);
       } catch (err) {
-        alert('Could not read backup file: ' + err.message);
+        alert('Could not read backup file: invalid JSON.');
+        return;
       }
+      let clean;
+      try {
+        clean = sanitizeImported(parsed);
+      } catch (err) {
+        alert('That file does not look like a Lift.Log backup.');
+        return;
+      }
+      if (!confirm('This will REPLACE all your current data with the backup. Continue?')) return;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(clean));
+      } catch (err) {
+        alert('Could not save imported data: ' + err.message);
+        return;
+      }
+      location.reload();
     };
+    reader.onerror = () => alert('Could not read backup file.');
     reader.readAsText(file);
-    event.target.value = ''; // reset for re-import
   }
 
   function dismissHint() {
@@ -2987,6 +3119,19 @@
 </script>
 
 <script>
+  // Block iOS pinch-to-zoom and double-tap-to-zoom (viewport meta is ignored on iOS 10+)
+  document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
+  document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
+  (function blockDoubleTapZoom() {
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd <= 350) e.preventDefault();
+      lastTouchEnd = now;
+    }, { passive: false });
+  })();
+
   (function syncHeaderHeight() {
     const header = document.querySelector('.header');
     if (!header) return;
