@@ -429,6 +429,16 @@
     letter-spacing: 0.02em;
   }
   .proc-desc { color: var(--text-dim); font-size: 13px; line-height: 1.6; }
+  .proc-platform { margin-top: 40px; }
+  .proc-platform:first-of-type { margin-top: 48px; }
+  .proc-platform-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--signal);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
 
   /* CTA */
   .final-cta {
@@ -662,22 +672,46 @@
       <span>~60 SECONDS</span>
     </div>
     <h2 class="section-headline">THREE <span class="signal">TAPS.</span></h2>
-    
-    <div class="proc-table">
-      <div class="proc-row">
-        <div class="proc-num">01</div>
-        <div class="proc-title">OPEN IN SAFARI</div>
-        <div class="proc-desc">Hit the install link. The app loads as a webpage. No download yet.</div>
+
+    <div class="proc-platform">
+      <div class="proc-platform-label">§ iPHONE / iPAD — SAFARI</div>
+      <div class="proc-table">
+        <div class="proc-row">
+          <div class="proc-num">01</div>
+          <div class="proc-title">OPEN IN SAFARI</div>
+          <div class="proc-desc">Hit the install link. The app loads as a webpage. No download yet.</div>
+        </div>
+        <div class="proc-row">
+          <div class="proc-num">02</div>
+          <div class="proc-title">SHARE → ADD TO HOME SCREEN</div>
+          <div class="proc-desc">Tap the Share button at the bottom. Scroll down. Tap "Add to Home Screen".</div>
+        </div>
+        <div class="proc-row">
+          <div class="proc-num">03</div>
+          <div class="proc-title">TRAIN</div>
+          <div class="proc-desc">App icon on your home screen. Opens fullscreen. Works offline. Done.</div>
+        </div>
       </div>
-      <div class="proc-row">
-        <div class="proc-num">02</div>
-        <div class="proc-title">ADD TO HOME SCREEN</div>
-        <div class="proc-desc">Tap the Share button. Find "Add to Home Screen". Hit it.</div>
-      </div>
-      <div class="proc-row">
-        <div class="proc-num">03</div>
-        <div class="proc-title">TRAIN</div>
-        <div class="proc-desc">App icon on your home screen. Opens fullscreen. Works offline. Done.</div>
+    </div>
+
+    <div class="proc-platform">
+      <div class="proc-platform-label">§ ANDROID — CHROME</div>
+      <div class="proc-table">
+        <div class="proc-row">
+          <div class="proc-num">01</div>
+          <div class="proc-title">OPEN IN CHROME</div>
+          <div class="proc-desc">Hit the install link. The app loads as a webpage. No download yet.</div>
+        </div>
+        <div class="proc-row">
+          <div class="proc-num">02</div>
+          <div class="proc-title">MENU → INSTALL APP</div>
+          <div class="proc-desc">Tap the three-dot menu. Choose "Install app" or "Add to Home screen".</div>
+        </div>
+        <div class="proc-row">
+          <div class="proc-num">03</div>
+          <div class="proc-title">TRAIN</div>
+          <div class="proc-desc">App icon on your home screen. Opens fullscreen. Works offline. Done.</div>
+        </div>
       </div>
     </div>
   </div>
