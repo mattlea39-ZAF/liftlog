@@ -2,7 +2,7 @@
   "name": "Lift Log",
   "short_name": "LiftLog",
   "description": "Personal workout tracker",
-  "start_url": "./",
+  "start_url": "./app.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

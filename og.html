@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Archivo:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d0e0f;
+    --line: #2a2e36;
+    --text: #e8e6e0;
+    --text-dim: #8b8e96;
+    --text-faint: #545862;
+    --signal: #c2f632;
+    --grid: rgba(232, 230, 224, 0.05);
+  }
+  body { background: #000; margin: 0; }
+  .card {
+    width: 1200px;
+    height: 630px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      radial-gradient(ellipse at 18% 55%, rgba(194, 246, 50, 0.10), transparent 55%);
+    background-size: 60px 60px, 60px 60px, 100% 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .top {
+    position: absolute;
+    top: 44px; left: 64px; right: 64px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .badge {
+    background: var(--signal);
+    color: var(--bg);
+    padding: 5px 10px;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+  }
+  .brand strong { color: var(--text); letter-spacing: 0.18em; font-weight: 600; }
+  .top-right { color: var(--signal); font-weight: 600; }
+
+  .id {
+    position: absolute;
+    top: 122px; left: 64px;
+    font-size: 13px;
+    letter-spacing: 0.28em;
+    color: var(--signal);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .id::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--signal);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--signal);
+  }
+
+  h1 {
+    position: absolute;
+    top: 168px; left: 64px; right: 64px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 102px;
+    line-height: 0.92;
+    letter-spacing: -0.045em;
+    text-transform: uppercase;
+  }
+  h1 .signal { color: var(--signal); }
+  h1 .strike {
+    text-decoration: line-through;
+    text-decoration-color: var(--signal);
+    text-decoration-thickness: 5px;
+    color: var(--text-faint);
+  }
+
+  .chips {
+    position: absolute;
+    left: 64px; right: 64px; top: 522px;
+    display: flex;
+    gap: 32px;
+    align-items: baseline;
+    border-top: 1px solid var(--line);
+    padding-top: 20px;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .chip { display: inline-flex; gap: 8px; align-items: baseline; }
+  .chip-key { color: var(--text-faint); font-size: 11px; }
+  .chip-val {
+    color: var(--signal);
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .chip-val.strike {
+    text-decoration: line-through;
+    text-decoration-color: var(--text-faint);
+    color: var(--text-faint);
+  }
+  .spacer { flex: 1; }
+  .footer-url {
+    color: var(--text-dim);
+    font-size: 13px;
+    letter-spacing: 0.15em;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="top">
+    <div class="brand">
+      <span class="badge">LL</span>
+      <strong>LIFT.LOG</strong>
+    </div>
+    <div class="top-right">// A WORKOUT TRACKER FOR LIFTERS, NOT DRIFTERS</div>
+  </div>
+
+  <div class="id">FREE · NO ACCOUNT · OFFLINE</div>
+
+  <h1>
+    NO <span class="strike">ACCOUNT.</span><br>
+    NO <span class="strike">ADS.</span><br>
+    JUST <span class="signal">LIFT.</span>
+  </h1>
+
+  <div class="chips">
+    <div class="chip"><span class="chip-key">PRICE</span><span class="chip-val">FREE</span></div>
+    <div class="chip"><span class="chip-key">ACCOUNTS</span><span class="chip-val strike">NONE</span></div>
+    <div class="chip"><span class="chip-key">ADS</span><span class="chip-val strike">ZERO</span></div>
+    <div class="chip"><span class="chip-key">OFFLINE</span><span class="chip-val">YES</span></div>
+    <div class="spacer"></div>
+    <div class="footer-url">mattlea39-zaf.github.io/liftlog</div>
+  </div>
+</div>
+</body>
+</html>
