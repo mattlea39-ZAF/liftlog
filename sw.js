@@ -1,4 +1,4 @@
-const CACHE = 'liftlog-v12';
+const CACHE = 'liftlog-v13';
 const ASSETS = [
   './',
   './index.html',
@@ -28,14 +28,17 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
   const isAppHTML = url.pathname.endsWith('/app.html');
+  const isManifest = url.pathname.endsWith('/manifest.json');
   const isHTML =
     req.mode === 'navigate' ||
     url.pathname.endsWith('/') ||
     url.pathname.endsWith('/index.html') ||
     isAppHTML;
 
-  if (isHTML) {
-    const cacheKey = isAppHTML ? './app.html' : './index.html';
+  if (isHTML || isManifest) {
+    const cacheKey = isAppHTML ? './app.html'
+                   : isManifest ? './manifest.json'
+                   : './index.html';
     event.respondWith(
       fetch(req)
         .then((res) => {
