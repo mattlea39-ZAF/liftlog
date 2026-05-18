@@ -1725,35 +1725,64 @@
     }));
   }
   
-  const DEFAULT_PROGRAM = {
-    meta: { session: 1, frequency: '2x a week' },
-    sessions: {
-      1: SESSION_1_GROUPS,
-      2: SESSION_2_GROUPS,
-      3: SESSION_3_GROUPS
+  // ---- Default workout type (the original Lift.Log program) ----
+  const DEFAULT_WORKOUT_TYPE_ID = 'lift-log';
+  const DEFAULT_WORKOUT_TYPES = {
+    'lift-log': {
+      id: 'lift-log',
+      name: 'Lift.Log',
+      sessions: {
+        1: { name: 'LEGS',         groups: SESSION_1_GROUPS },
+        2: { name: 'CHEST + BACK', groups: SESSION_2_GROUPS },
+        3: { name: 'ARMS',         groups: SESSION_3_GROUPS }
+      }
+    }
+  };
+
+  const DEFAULT_STATE = {
+    schemaVersion: 6,
+    meta: {
+      workoutType: DEFAULT_WORKOUT_TYPE_ID,
+      session: 1,
+      frequency: '2x a week'
     },
-    // log: { "YYYY-MM": { sessionId: [ { date, weights: { exId: { weight, unit } } } ] } }
+    workoutTypes: DEFAULT_WORKOUT_TYPES,
+    // log: { "YYYY-MM": [ { workoutType, sessionId, date, weights: { exId: { weight, unit } } } ] }
     log: {}
   };
 
-  const STORAGE_KEY = 'liftlog_v5';
-  const OLD_STORAGE_KEY = 'liftlog_v1';
+  const STORAGE_KEY = 'liftlog_v6';
+  const PREV_STORAGE_KEY = 'liftlog_v5';
   let state = loadState();
   resetTicksIfNewDay();
   let currentGroupForAdd = null;
   let currentLogMonth = monthKey(new Date());
+  // Monthly-mirror filter: which workout type to show. Default to currently active type.
+  let currentLogProgramFilter = state.meta.workoutType;
 
-  // If the calendar day has changed since the app was last open, clear ticks across all sessions.
-  // This prevents yesterday's ticks from auto-logging onto today.
+  function currentWorkoutType() {
+    return state.workoutTypes[state.meta.workoutType] || state.workoutTypes[DEFAULT_WORKOUT_TYPE_ID];
+  }
+
+  function sessionIdsForCurrentType() {
+    const wt = currentWorkoutType();
+    if (!wt || !wt.sessions) return [];
+    return Object.keys(wt.sessions).map(n => parseInt(n, 10)).sort((a, b) => a - b);
+  }
+
+  // If the calendar day has changed since the app was last open, clear ticks across all sessions
+  // in ALL workout types. Prevents yesterday's ticks from auto-logging onto today.
   function resetTicksIfNewDay() {
     const today = todayKey();
     const last = state.meta && state.meta.lastActiveDate;
     if (last !== today) {
-      if (state.sessions) {
-        [1, 2, 3].forEach(n => {
-          const groups = state.sessions[n];
-          if (!Array.isArray(groups)) return;
-          groups.forEach(g => g && Array.isArray(g.exercises) && g.exercises.forEach(e => { e.done = false; }));
+      if (state.workoutTypes) {
+        Object.values(state.workoutTypes).forEach(wt => {
+          if (!wt || !wt.sessions) return;
+          Object.values(wt.sessions).forEach(sess => {
+            if (!sess || !Array.isArray(sess.groups)) return;
+            sess.groups.forEach(g => g && Array.isArray(g.exercises) && g.exercises.forEach(e => { e.done = false; }));
+          });
         });
       }
       if (!state.meta) state.meta = {};
@@ -1809,63 +1838,159 @@
   }
 
   function sessionName(sessionId) {
-    return ({1: 'LEGS', 2: 'CHEST + BACK', 3: 'ARMS'})[sessionId] || `SESSION ${sessionId}`;
+    const wt = currentWorkoutType();
+    const sess = wt && wt.sessions && wt.sessions[sessionId];
+    if (sess && typeof sess.name === 'string' && sess.name.length) return sess.name;
+    return `SESSION ${sessionId}`;
   }
-  
-  // Make state.groups always return the active session's groups
-  // (keeps all existing code working without changes)
+
+  // Look up a session by workout type id + session id (used when rendering the monthly log
+  // across workout types). Returns name or null if the workout type was deleted.
+  function sessionNameFor(workoutTypeId, sessionId) {
+    const wt = state.workoutTypes && state.workoutTypes[workoutTypeId];
+    const sess = wt && wt.sessions && wt.sessions[sessionId];
+    if (sess && typeof sess.name === 'string' && sess.name.length) return sess.name;
+    return `SESSION ${sessionId}`;
+  }
+
+  function workoutTypeName(workoutTypeId) {
+    const wt = state.workoutTypes && state.workoutTypes[workoutTypeId];
+    return (wt && wt.name) || workoutTypeId;
+  }
+
+  // Make state.groups always return the active session's groups within the active workout type.
+  // Keeps all existing read-side code working unchanged.
   function attachGroupsGetter(s) {
     if (Object.getOwnPropertyDescriptor(s, 'groups')?.get) return s;
     Object.defineProperty(s, 'groups', {
-      get() { 
-        const sid = String(this.meta.session);
-        if (!this.sessions[sid]) this.sessions[sid] = [];
-        return this.sessions[sid]; 
+      get() {
+        const wt = s.workoutTypes[s.meta.workoutType];
+        if (!wt) return [];
+        const sid = String(s.meta.session);
+        if (!wt.sessions[sid]) wt.sessions[sid] = { name: `SESSION ${sid}`, groups: [] };
+        return wt.sessions[sid].groups;
       },
-      set(v) { 
-        const sid = String(this.meta.session);
-        this.sessions[sid] = v; 
+      set(v) {
+        const wt = s.workoutTypes[s.meta.workoutType];
+        if (!wt) return;
+        const sid = String(s.meta.session);
+        if (!wt.sessions[sid]) wt.sessions[sid] = { name: `SESSION ${sid}`, groups: [] };
+        wt.sessions[sid].groups = v;
       },
       configurable: true
     });
     return s;
   }
 
+  // Migrate a v5-shaped state into a v6 state. Wraps existing sessions into the default
+  // "Lift.Log" workout type and flattens the per-month log array, tagging every entry
+  // with workoutType.
+  function migrateV5toV6(v5) {
+    const v5sessions = (v5 && v5.sessions) || {};
+    const v5meta = (v5 && v5.meta) || {};
+    const wt = {
+      id: DEFAULT_WORKOUT_TYPE_ID,
+      name: 'Lift.Log',
+      sessions: {
+        1: { name: 'LEGS',         groups: Array.isArray(v5sessions[1]) ? v5sessions[1] : JSON.parse(JSON.stringify(SESSION_1_GROUPS)) },
+        2: { name: 'CHEST + BACK', groups: Array.isArray(v5sessions[2]) ? v5sessions[2] : JSON.parse(JSON.stringify(SESSION_2_GROUPS)) },
+        3: { name: 'ARMS',         groups: Array.isArray(v5sessions[3]) ? v5sessions[3] : JSON.parse(JSON.stringify(SESSION_3_GROUPS)) }
+      }
+    };
+    const flatLog = {};
+    const v5log = (v5 && v5.log) || {};
+    Object.keys(v5log).forEach(month => {
+      const bySession = v5log[month] || {};
+      flatLog[month] = [];
+      Object.keys(bySession).forEach(sid => {
+        const entries = bySession[sid] || [];
+        if (!Array.isArray(entries)) return;
+        entries.forEach(e => {
+          if (!e || typeof e !== 'object' || !e.date) return;
+          flatLog[month].push({
+            workoutType: DEFAULT_WORKOUT_TYPE_ID,
+            sessionId: parseInt(sid, 10),
+            date: e.date,
+            weights: e.weights || {}
+          });
+        });
+      });
+    });
+    return {
+      schemaVersion: 6,
+      meta: {
+        workoutType: DEFAULT_WORKOUT_TYPE_ID,
+        session: parseInt(v5meta.session, 10) || 1,
+        frequency: v5meta.frequency || '2x a week',
+        lastActiveDate: typeof v5meta.lastActiveDate === 'string' ? v5meta.lastActiveDate : null
+      },
+      workoutTypes: { [DEFAULT_WORKOUT_TYPE_ID]: wt },
+      log: flatLog
+    };
+  }
+
   function loadState() {
     let s = null;
+
+    // Try v6 first
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) s = JSON.parse(raw);
     } catch (e) {}
-    
-    // Migration from v4: keep all data, just add empty log
+
+    // Then v5 → migrate
+    if (!s) {
+      try {
+        const v5raw = localStorage.getItem(PREV_STORAGE_KEY);
+        if (v5raw) s = migrateV5toV6(JSON.parse(v5raw));
+      } catch (e) {}
+    }
+
+    // Then v4 → first into v5 shape, then into v6
     if (!s) {
       try {
         const v4raw = localStorage.getItem('liftlog_v4');
         if (v4raw) {
-          s = JSON.parse(v4raw);
-          if (!s.log) s.log = {};
+          const v4 = JSON.parse(v4raw);
+          if (!v4.log) v4.log = {};
+          s = migrateV5toV6(v4);
         }
       } catch (e) {}
     }
-    
-    if (!s) s = JSON.parse(JSON.stringify(DEFAULT_PROGRAM));
-    
-    // Safety: ensure sessions object exists with all 3 slots
-    if (!s.sessions) s.sessions = {};
+
+    if (!s) s = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+    // Safety: ensure the default workout type exists with all 3 sessions
+    if (!s.workoutTypes) s.workoutTypes = {};
     if (!s.log) s.log = {};
-    const defaults = { 1: SESSION_1_GROUPS, 2: SESSION_2_GROUPS, 3: SESSION_3_GROUPS };
-    [1, 2, 3].forEach(n => {
-      if (!s.sessions[n]) s.sessions[n] = JSON.parse(JSON.stringify(defaults[n]));
-    });
-    
+    if (!s.meta) s.meta = {};
+    if (!s.meta.workoutType || !s.workoutTypes[s.meta.workoutType]) {
+      s.meta.workoutType = DEFAULT_WORKOUT_TYPE_ID;
+    }
+    if (!s.workoutTypes[DEFAULT_WORKOUT_TYPE_ID]) {
+      s.workoutTypes[DEFAULT_WORKOUT_TYPE_ID] = JSON.parse(JSON.stringify(DEFAULT_WORKOUT_TYPES[DEFAULT_WORKOUT_TYPE_ID]));
+    }
+    // Ensure the active session id exists within the active workout type
+    const activeWT = s.workoutTypes[s.meta.workoutType];
+    if (!activeWT.sessions || Object.keys(activeWT.sessions).length === 0) {
+      activeWT.sessions = { 1: { name: 'SESSION 1', groups: [] } };
+    }
+    if (!activeWT.sessions[s.meta.session]) {
+      s.meta.session = parseInt(Object.keys(activeWT.sessions)[0], 10);
+    }
+    s.schemaVersion = 6;
+
     return attachGroupsGetter(s);
   }
 
   function saveState() {
     try {
-      // Serialize sessions explicitly (Object.defineProperty getters don't serialize)
-      const toSave = { meta: state.meta, sessions: state.sessions, log: state.log };
+      const toSave = {
+        schemaVersion: 6,
+        meta: state.meta,
+        workoutTypes: state.workoutTypes,
+        log: state.log
+      };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     } catch (e) {}
   }
