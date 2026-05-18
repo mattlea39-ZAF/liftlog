@@ -77,7 +77,14 @@
     font-size: 32px;
     letter-spacing: 0.05em;
     line-height: 1;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    user-select: none;
+    -webkit-user-select: none;
   }
+
+  .logo:hover { opacity: 0.75; }
+  .logo:active { opacity: 0.55; }
 
   .logo .accent { color: var(--accent); }
 
@@ -768,6 +775,76 @@
     font-weight: 700;
   }
 
+  /* Workout-type picker rows */
+  .wt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-bottom: 4px;
+  }
+
+  .wt-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .wt-row:active { background: var(--surface-2); }
+
+  .wt-row-active {
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .wt-row-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .wt-row-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+    margin-top: 4px;
+    text-transform: uppercase;
+  }
+
+  .wt-row-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .wt-row-action {
+    padding: 6px 10px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+  }
+
+  .wt-row-action:active { background: var(--surface); }
+
   /* Session Complete Bar */
   .session-complete-bar {
     display: flex;
@@ -1057,6 +1134,43 @@
     font-size: 12px;
     letter-spacing: 0.05em;
     line-height: 1.6;
+  }
+
+  .log-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-bottom: 16px;
+  }
+
+  .log-filter-chip {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .log-filter-chip.active {
+    background: var(--accent);
+    color: #0a0a0a;
+    border-color: var(--accent);
+  }
+
+  .log-session-type-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    margin-left: 6px;
+    font-weight: 400;
   }
 
   .install-hint {
@@ -1457,11 +1571,7 @@
       </button>
     </div>
   </div>
-  <div class="session-tabs" id="sessionTabs">
-    <button class="session-tab" data-session="1" onclick="switchSession(1)">LEGS</button>
-    <button class="session-tab" data-session="2" onclick="switchSession(2)">CHEST + BACK</button>
-    <button class="session-tab" data-session="3" onclick="switchSession(3)">ARMS</button>
-  </div>
+  <div class="session-tabs" id="sessionTabs"></div>
   <span id="sessionNum" style="display:none">1</span>
   <span id="freqDisplay" style="display:none"></span>
   <span id="completedCount" style="display:none"></span>
@@ -1536,11 +1646,7 @@
   <div class="modal">
     <h3>SETTINGS</h3>
     <input type="text" class="modal-input" id="settingsFreq" placeholder="Frequency (e.g. 2x a week)">
-    <select class="modal-select" id="settingsSession">
-      <option value="1">Session 1</option>
-      <option value="2">Session 2</option>
-      <option value="3">Session 3</option>
-    </select>
+    <select class="modal-select" id="settingsSession"></select>
     <div class="modal-buttons">
       <button class="modal-btn" onclick="exportData()">EXPORT</button>
       <button class="modal-btn" onclick="closeModal('settingsModal')">CLOSE</button>
@@ -1614,6 +1720,18 @@
       <button class="modal-btn" onclick="closeModal('dataModal')">CLOSE</button>
     </div>
     <input type="file" id="importInput" accept="application/json,.json" style="display:none" onchange="importData(event)">
+  </div>
+</div>
+
+<!-- Workout Type Picker Modal -->
+<div class="modal-backdrop" id="workoutTypeModal">
+  <div class="modal">
+    <h3>WORKOUTS</h3>
+    <div class="wt-list" id="wtList"></div>
+    <button class="modal-btn primary" onclick="addWorkoutType()" style="width:100%; margin-top:10px;">+ NEW WORKOUT TYPE</button>
+    <div class="modal-buttons" style="margin-top:14px;">
+      <button class="modal-btn" onclick="closeModal('workoutTypeModal')">CLOSE</button>
+    </div>
   </div>
 </div>
 
@@ -2000,7 +2118,11 @@
   function render() {
     document.getElementById('sessionNum').textContent = state.meta.session;
     document.getElementById('freqDisplay').textContent = state.meta.frequency.toUpperCase();
-    
+
+    // Rebuild session tabs for the active workout type before highlighting.
+    // Guarded in case renderSessionTabs() hasn't been merged in yet.
+    if (typeof renderSessionTabs === 'function') renderSessionTabs();
+
     // Highlight active session tab
     document.querySelectorAll('.session-tab').forEach(tab => {
       tab.classList.toggle('active', parseInt(tab.dataset.session) === state.meta.session);
@@ -2631,7 +2753,12 @@
     switchSession_real(n);
   }
   function switchSession_real(n) {
-    state.meta.session = parseInt(n);
+    const sid = parseInt(n);
+    if (!Number.isFinite(sid)) return;
+    const wt = currentWorkoutType();
+    // Defensive: ignore switches to a session id that doesn't exist in the active type.
+    if (!wt || !wt.sessions || !wt.sessions[sid]) return;
+    state.meta.session = sid;
     saveState();
     render();
     if (navigator.vibrate) navigator.vibrate(10);
@@ -2819,13 +2946,33 @@
 
   function openSettingsModal() {
     document.getElementById('settingsFreq').value = state.meta.frequency;
-    document.getElementById('settingsSession').value = state.meta.session;
+    // Populate the session dropdown dynamically from the active workout type.
+    const sel = document.getElementById('settingsSession');
+    sel.innerHTML = '';
+    const wt = currentWorkoutType();
+    const ids = sessionIdsForCurrentType();
+    ids.forEach(sid => {
+      const opt = document.createElement('option');
+      opt.value = sid;
+      const nm = (wt && wt.sessions && wt.sessions[sid] && wt.sessions[sid].name) || `Session ${sid}`;
+      opt.textContent = nm;
+      sel.appendChild(opt);
+    });
+    sel.value = state.meta.session;
     document.getElementById('settingsModal').classList.add('active');
   }
 
   function saveSettings() {
     state.meta.frequency = document.getElementById('settingsFreq').value || '2x a week';
-    state.meta.session = parseInt(document.getElementById('settingsSession').value) || 1;
+    const raw = parseInt(document.getElementById('settingsSession').value);
+    const wt = currentWorkoutType();
+    const ids = sessionIdsForCurrentType();
+    const fallback = ids[0];
+    if (Number.isFinite(raw) && wt && wt.sessions && wt.sessions[raw]) {
+      state.meta.session = raw;
+    } else {
+      state.meta.session = fallback;
+    }
     saveState();
     render();
     closeModal('settingsModal');
@@ -3150,8 +3297,17 @@
   // ---------- Monthly Log ----------
   function openLogPage() {
     currentLogMonth = monthKey(new Date());
+    // Default the filter to the currently active workout type so the user sees
+    // the most relevant view first; chips let them switch to 'all' or others.
+    currentLogProgramFilter = state.meta && state.meta.workoutType ? state.meta.workoutType : 'all';
     document.getElementById('logPage').classList.add('active');
     renderLogPage();
+  }
+
+  function setLogFilter(id) {
+    currentLogProgramFilter = id;
+    renderLogPage();
+    if (navigator.vibrate) navigator.vibrate(8);
   }
   
   function closeLogPage() {
@@ -3293,6 +3449,130 @@
     return Object.values(progress).filter(p => p.last > p.first).length;
   }
 
+  // ---------- Dynamic session tabs ----------
+  function renderSessionTabs() {
+    const container = document.getElementById('sessionTabs');
+    if (!container) return;
+    const wt = currentWorkoutType();
+    if (!wt || !wt.sessions) { container.innerHTML = ''; return; }
+    const ids = sessionIdsForCurrentType();
+    container.innerHTML = ids.map(sid => {
+      const name = (wt.sessions[sid] && wt.sessions[sid].name) || `SESSION ${sid}`;
+      return `<button class="session-tab" data-session="${sid}" onclick="switchSession(${sid})">${escapeHtml(name)}</button>`;
+    }).join('');
+  }
+
+  // ---------- Workout-type picker ----------
+  function openWorkoutTypePicker() {
+    renderWorkoutTypeList();
+    document.getElementById('workoutTypeModal').classList.add('active');
+  }
+
+  function renderWorkoutTypeList() {
+    const list = document.getElementById('wtList');
+    if (!list) return;
+    const ids = Object.keys(state.workoutTypes);
+    list.innerHTML = ids.map(id => {
+      const wt = state.workoutTypes[id];
+      const isActive = id === state.meta.workoutType;
+      const sessionCount = wt.sessions ? Object.keys(wt.sessions).length : 0;
+      const canDelete = id !== DEFAULT_WORKOUT_TYPE_ID && ids.length > 1;
+      return `
+        <div class="wt-row ${isActive ? 'wt-row-active' : ''}" onclick="switchWorkoutType('${id}')">
+          <div>
+            <div class="wt-row-name">${escapeHtml(wt.name || id)}</div>
+            <div class="wt-row-meta">${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}${isActive ? ' · ACTIVE' : ''}</div>
+          </div>
+          <div class="wt-row-actions" onclick="event.stopPropagation()">
+            <button class="wt-row-action" onclick="renameWorkoutType('${id}')">RENAME</button>
+            ${canDelete ? `<button class="wt-row-action" style="color:var(--danger)" onclick="deleteWorkoutType('${id}')">DELETE</button>` : ''}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function switchWorkoutType(id) {
+    if (!state.workoutTypes[id]) return;
+    state.meta.workoutType = id;
+    // Pick the first session of the new workout type
+    const ids = Object.keys(state.workoutTypes[id].sessions).map(n => parseInt(n, 10)).sort((a,b)=>a-b);
+    state.meta.session = ids[0] || 1;
+    // Update monthly-log filter to follow the user
+    currentLogProgramFilter = id;
+    saveState();
+    closeModal('workoutTypeModal');
+    renderSessionTabs();
+    render();
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+
+  function addWorkoutType() {
+    const name = (prompt('Name this workout type (e.g. ROBS SPLIT):') || '').trim();
+    if (!name) return;
+    // Build a clean id slug
+    const baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'workout';
+    let id = baseId, i = 2;
+    while (state.workoutTypes[id]) { id = baseId + '-' + i; i++; }
+    state.workoutTypes[id] = {
+      id,
+      name,
+      sessions: {
+        1: { name: 'SESSION 1', groups: [] }
+      }
+    };
+    state.meta.workoutType = id;
+    state.meta.session = 1;
+    currentLogProgramFilter = id;
+    saveState();
+    closeModal('workoutTypeModal');
+    renderSessionTabs();
+    render();
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+  }
+
+  function renameWorkoutType(id) {
+    const wt = state.workoutTypes[id];
+    if (!wt) return;
+    const next = (prompt('Rename workout type:', wt.name || id) || '').trim();
+    if (!next || next === wt.name) return;
+    wt.name = next;
+    saveState();
+    renderWorkoutTypeList();
+  }
+
+  function deleteWorkoutType(id) {
+    if (id === DEFAULT_WORKOUT_TYPE_ID) { alert('Cannot delete the default workout type.'); return; }
+    const wt = state.workoutTypes[id];
+    if (!wt) return;
+    if (!confirm(`Delete "${wt.name || id}" and all its logged history? This cannot be undone.`)) return;
+    delete state.workoutTypes[id];
+    // Remove its log entries
+    Object.keys(state.log).forEach(month => {
+      if (Array.isArray(state.log[month])) {
+        state.log[month] = state.log[month].filter(e => e.workoutType !== id);
+        if (state.log[month].length === 0) delete state.log[month];
+      }
+    });
+    // If active workout type was deleted, switch to default
+    if (state.meta.workoutType === id) {
+      state.meta.workoutType = DEFAULT_WORKOUT_TYPE_ID;
+      const ids = Object.keys(state.workoutTypes[DEFAULT_WORKOUT_TYPE_ID].sessions).map(n => parseInt(n, 10)).sort((a,b)=>a-b);
+      state.meta.session = ids[0] || 1;
+    }
+    if (currentLogProgramFilter === id) currentLogProgramFilter = state.meta.workoutType;
+    saveState();
+    renderWorkoutTypeList();
+    renderSessionTabs();
+    render();
+    if (navigator.vibrate) navigator.vibrate(20);
+  }
+
+  // Tap logo to open workout-type picker
+  const _logoEl = document.querySelector('.logo');
+  if (_logoEl) _logoEl.addEventListener('click', openWorkoutTypePicker);
+
+  renderSessionTabs();
   render();
   showRecoveryBannerIfPending();
 </script>
