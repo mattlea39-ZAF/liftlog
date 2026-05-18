@@ -3329,43 +3329,70 @@
   
   function renderLogPage() {
     document.getElementById('logMonthLabel').textContent = formatMonthLabel(currentLogMonth);
-    
-    const monthLog = state.log[currentLogMonth] || {};
+
     const content = document.getElementById('logContent');
-    
+    const rawMonth = state.log && state.log[currentLogMonth];
+    const monthEntries = Array.isArray(rawMonth) ? rawMonth : [];
+
+    // Ensure filter still references a known workout type; fall back to 'all'.
+    const knownTypes = state.workoutTypes ? Object.keys(state.workoutTypes) : [];
+    if (currentLogProgramFilter !== 'all' && !knownTypes.includes(currentLogProgramFilter)) {
+      currentLogProgramFilter = 'all';
+    }
+
+    // Filter by workout type
+    const filtered = currentLogProgramFilter === 'all'
+      ? monthEntries.slice()
+      : monthEntries.filter(e => e && e.workoutType === currentLogProgramFilter);
+
+    // Sort ascending by date so per-exercise first/last progressions are chronological.
+    filtered.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+
     // Stats
-    let totalSessions = 0;
+    const totalSessions = filtered.length;
+    // Keyed by `${workoutType}|${sessionId}` for per-session breakdown.
     const perSessionCounts = {};
-    [1, 2, 3].forEach(sid => {
-      const entries = monthLog[sid] || [];
-      perSessionCounts[sid] = entries.length;
-      totalSessions += entries.length;
-    });
-    
-    // Build per-exercise progress: first weight vs last weight in this month
-    // Aggregated across all session entries in the month
-    const exerciseProgress = {}; // { exId: { name, unit, first, last, sessionId } }
-    [1, 2, 3].forEach(sid => {
-      const entries = (monthLog[sid] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
-      entries.forEach(entry => {
-        Object.entries(entry.weights || {}).forEach(([exId, data]) => {
-          if (!exerciseProgress[exId]) {
-            exerciseProgress[exId] = { 
-              name: data.name, 
-              unit: data.unit, 
-              first: data.weight, 
-              last: data.weight,
-              sessionId: sid
-            };
-          } else {
-            exerciseProgress[exId].last = data.weight;
-            exerciseProgress[exId].unit = data.unit;
-          }
-        });
+    // Keyed by `${workoutType}|${sessionId}|${exId}` so different workout types don't collide.
+    const exerciseProgress = {};
+
+    filtered.forEach(entry => {
+      const wt = entry.workoutType;
+      const sid = entry.sessionId;
+      const groupKey = `${wt}|${sid}`;
+      perSessionCounts[groupKey] = (perSessionCounts[groupKey] || 0) + 1;
+
+      Object.entries(entry.weights || {}).forEach(([exId, data]) => {
+        if (!data) return;
+        const exKey = `${wt}|${sid}|${exId}`;
+        if (!exerciseProgress[exKey]) {
+          exerciseProgress[exKey] = {
+            name: data.name,
+            unit: data.unit,
+            first: data.weight,
+            last: data.weight,
+            workoutType: wt,
+            sessionId: sid
+          };
+        } else {
+          exerciseProgress[exKey].last = data.weight;
+          exerciseProgress[exKey].unit = data.unit;
+        }
       });
     });
-    
-    let html = `
+
+    // Filter row: chips for each workout type + ALL chip.
+    const types = state.workoutTypes ? Object.values(state.workoutTypes) : [];
+    let filterRow = `<div class="log-filter-row">`;
+    types.forEach(wt => {
+      if (!wt || !wt.id) return;
+      const activeCls = currentLogProgramFilter === wt.id ? ' active' : '';
+      filterRow += `<button type="button" class="log-filter-chip${activeCls}" onclick="setLogFilter('${escapeHtml(wt.id)}')">${escapeHtml(wt.name || wt.id)}</button>`;
+    });
+    const allActive = currentLogProgramFilter === 'all' ? ' active' : '';
+    filterRow += `<button type="button" class="log-filter-chip${allActive}" onclick="setLogFilter('all')">ALL</button>`;
+    filterRow += `</div>`;
+
+    let html = filterRow + `
       <div class="log-stat-row">
         <div class="log-stat">
           <div class="log-stat-value">${totalSessions}</div>
@@ -3381,53 +3408,78 @@
         </div>
       </div>
     `;
-    
+
     if (totalSessions === 0) {
       html += `<div class="log-empty">No sessions logged this month.<br><br>Mark exercises done in your workout to auto-log a session, or tap the LOG button at the top of any session screen.</div>`;
       content.innerHTML = html;
       return;
     }
-    
+
+    // Order session groups: active workout type first, then by sessionId ascending.
+    const activeWt = state.meta && state.meta.workoutType;
+    const groupKeys = Object.keys(perSessionCounts).sort((a, b) => {
+      const [wtA, sidA] = a.split('|');
+      const [wtB, sidB] = b.split('|');
+      const aActive = wtA === activeWt ? 0 : 1;
+      const bActive = wtB === activeWt ? 0 : 1;
+      if (aActive !== bActive) return aActive - bActive;
+      if (wtA !== wtB) return wtA.localeCompare(wtB);
+      return parseInt(sidA, 10) - parseInt(sidB, 10);
+    });
+
+    const showTypeTag = currentLogProgramFilter === 'all';
+
     // Per-session breakdown
     html += `<div class="log-section-title">SESSIONS</div>`;
-    [1, 2, 3].forEach(sid => {
-      const count = perSessionCounts[sid];
-      if (count === 0) return;
-      const entries = (monthLog[sid] || []).slice().sort((a, b) => a.date.localeCompare(b.date));
+    groupKeys.forEach(key => {
+      const [wt, sidStr] = key.split('|');
+      const sid = parseInt(sidStr, 10);
+      const count = perSessionCounts[key];
+      const entries = filtered
+        .filter(e => e.workoutType === wt && e.sessionId === sid)
+        .slice()
+        .sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
       const dateChips = entries.map(e => {
         const d = new Date(e.date + 'T00:00:00');
         const day = d.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase();
         const dayNum = d.getDate();
         return `<span class="log-date-chip">${day} ${dayNum}</span>`;
       }).join('');
+      const typeTag = showTypeTag
+        ? ` <span class="log-session-type-tag">(${escapeHtml(workoutTypeName(wt))})</span>`
+        : '';
       html += `
         <div class="log-session-row" style="flex-direction: column; align-items: stretch; gap: 10px;">
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="log-session-name">${sessionName(sid)}</div>
+            <div class="log-session-name">${escapeHtml(sessionNameFor(wt, sid))}${typeTag}</div>
             <div class="log-session-count">×${count}</div>
           </div>
           <div class="log-date-chips">${dateChips}</div>
         </div>
       `;
     });
-    
-    // Per-exercise progress
+
+    // Per-exercise progress, grouped same as the SESSIONS section.
     html += `<div class="log-section-title">PROGRESS</div>`;
-    
-    // Group by session
-    [1, 2, 3].forEach(sid => {
-      const exForSession = Object.entries(exerciseProgress).filter(([_, v]) => v.sessionId === sid);
-      if (exForSession.length === 0) return;
-      
-      html += `<div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; margin: 12px 4px 6px;">${sessionName(sid)}</div>`;
-      
-      exForSession.forEach(([exId, data]) => {
+    groupKeys.forEach(key => {
+      const [wt, sidStr] = key.split('|');
+      const sid = parseInt(sidStr, 10);
+      const exForGroup = Object.entries(exerciseProgress)
+        .filter(([_, v]) => v.workoutType === wt && v.sessionId === sid);
+      if (exForGroup.length === 0) return;
+
+      const typeTag = showTypeTag
+        ? ` <span class="log-session-type-tag">(${escapeHtml(workoutTypeName(wt))})</span>`
+        : '';
+      html += `<div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; margin: 12px 4px 6px;">${escapeHtml(sessionNameFor(wt, sid))}${typeTag}</div>`;
+
+      exForGroup.forEach(([_, data]) => {
         const delta = data.last - data.first;
         const deltaClass = delta > 0 ? '' : (delta < 0 ? 'negative' : 'zero');
         const deltaText = delta === 0 ? '—' : (delta > 0 ? '+' : '') + formatValue(Math.abs(delta), data.unit) + ' ' + (data.unit === 'min' ? 'min' : 'kg');
         const fromText = formatValue(data.first, data.unit) + (data.unit === 'min' ? ' min' : ' kg');
         const toText = formatValue(data.last, data.unit) + (data.unit === 'min' ? ' min' : ' kg');
-        
+
         html += `
           <div class="log-exercise-row">
             <div class="log-exercise-name">${escapeHtml(data.name)}</div>
@@ -3441,7 +3493,7 @@
         `;
       });
     });
-    
+
     content.innerHTML = html;
   }
   
