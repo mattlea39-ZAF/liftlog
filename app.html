@@ -1850,91 +1850,120 @@
 </div>
 
 <script>
-  // ---------- Default program from Matt's sheet ----------
-  // ---------- Default program ----------
-  // Shared warm up used across all sessions
-  const WARM_UP_EXERCISES = [
-    { name: 'Shoulder dislocations (band)', meta: '4 x 15', weight: 0, done: false },
-    { name: 'Rotator cuff (band)', meta: '4 x 15', weight: 0, done: false }
-  ];
-  
-  function buildWarmUp(sessionTag) {
-    return {
-      id: 'warmup-' + sessionTag,
-      name: 'WARM UP',
-      exercises: WARM_UP_EXERCISES.map((e, i) => ({
-        ...e,
-        id: 'w' + (i + 1) + '-' + sessionTag
-      }))
-    };
-  }
-  
+  // ---------- Default program (Matt's current routine, May 2026) ----------
+
   // Session 1: LEGS
   const SESSION_1_GROUPS = [
-    buildWarmUp('s1'),
+    {
+      id: 'warmup-s1',
+      name: 'WARM UP',
+      exercises: [
+        { id: 'w1-s1', name: 'Spin bike', meta: '10 min', weight: 9, done: false, unit: 'min' }
+      ]
+    },
     {
       id: 'legs-s1',
       name: 'LEGS',
       exercises: [
-        { id: 'l1-s1', name: 'One leg squat', meta: '4 x 15 each leg', weight: 0, done: false },
-        { id: 'l2-s1', name: 'Lying hip lifts (on ball)', meta: '4 x 15 each leg', weight: 0, done: false },
-        { id: 'l3-s1', name: 'Leg press', meta: '4 x 15 each leg', weight: 40, done: false },
-        { id: 'l4-s1', name: 'Step downs', meta: '4 x 15 each leg', weight: 0, done: false },
-        { id: 'l5-s1', name: 'Bosu squats', meta: '4 x 15', weight: 0, done: false }
+        { id: 'l1-s1', name: 'One leg squat',             meta: '4 x 15 each leg', weight: 0,  done: false, supersetId: 'ss_xr5vy9b' },
+        { id: 'l2-s1', name: 'Lying hip lifts (on ball)', meta: '4 x 15 each leg', weight: 0,  done: false, supersetId: 'ss_xr5vy9b' },
+        { id: 'l3-s1', name: 'Single leg press',          meta: '4 x 15 each leg', weight: 40, done: false, supersetId: 'ss_o76uski' },
+        { id: 'l4-s1', name: 'Single leg step downs',     meta: '4 x 15 each leg', weight: 0,  done: false, supersetId: 'ss_o76uski' },
+        { id: 'l5-s1', name: 'Bosu squats',               meta: '4 x 15',          weight: 0,  done: false, supersetId: 'ss_o76uski' }
       ]
     },
-    { id: 'abs-s1', name: 'ABDOMINALS', exercises: [] }
+    {
+      id: 'xhy3b2u',
+      name: 'STRETCH',
+      exercises: [
+        { id: 'i9q1ich', name: 'Lizzard stretch',                meta: '2 x 1 min/side', weight: 1, done: false, unit: 'min' },
+        { id: 'mps7p3k', name: 'Wall single leg glute stretch',  meta: '2 x 1 min/side', weight: 1, done: false, unit: 'min' },
+        { id: 'xv90msu', name: 'Hip flexor against wall',        meta: '2 x 1 min/side', weight: 0, done: false }
+      ]
+    },
+    {
+      id: 'abs-s1',
+      name: 'ABDOMINALS',
+      exercises: [
+        { id: 'kgvpvs5', name: 'Roll ups',       meta: '3 x 10', weight: 0, done: false },
+        { id: 'lntqwg9', name: 'Plank toe taps', meta: '2 x 30', weight: 0, done: false }
+      ]
+    }
   ];
-  
-  // Session 2: BACK + CHEST
+
+  // Session 2: CHEST + BACK
   const SESSION_2_GROUPS = [
-    buildWarmUp('s2'),
+    {
+      id: 'warmup-s2',
+      name: 'WARM UP',
+      exercises: [
+        { id: 'w1-s2', name: 'Shoulder dislocations (band)', meta: '4 x 15', weight: 0, done: false },
+        { id: 'w2-s2', name: 'Rotator cuff (band)',          meta: '4 x 15', weight: 0, done: false }
+      ]
+    },
     {
       id: 'backchest-s2',
       name: 'CHEST + BACK',
       exercises: [
-        { id: 'b1-s2', name: 'Pull ups', meta: '4 x 15', weight: 0, done: false },
-        { id: 'b2-s2', name: 'Ball press', meta: '4 x 15', weight: 8, done: false },
-        { id: 'b3-s2', name: 'Bent over rows', meta: '4 x 15 (DB)', weight: 8, done: false },
-        { id: 'b4-s2', name: 'Incline DB press', meta: '4 x 15', weight: 8, done: false },
-        { id: 'b5-s2', name: 'Low row', meta: '4 x 15', weight: 25, done: false },
-        { id: 'b6-s2', name: 'Pec fly machine', meta: '4 x 15', weight: 20, done: false }
+        { id: '4gr51vy', name: 'Scap pull ups',              meta: '4 x 15',      weight: 0,  done: false, supersetId: 'ss_zo1ce7v' },
+        { id: 'b1-s2',   name: 'Assisted pull ups',          meta: '4 x 15',      weight: 40, done: false, supersetId: 'ss_zo1ce7v' },
+        { id: 'b2-s2',   name: 'Ball chest press',           meta: '4 x 15',      weight: 10, done: false, supersetId: 'ss_zo1ce7v' },
+        { id: 'b3-s2',   name: 'Bent over rows (20kg bar)',  meta: '4 x 15 (DB)', weight: 10, done: false, supersetId: 'ss_hw6hb3m' },
+        { id: 'b4-s2',   name: 'Incline DB  chest press',    meta: '4 x 15',      weight: 10, done: false, supersetId: 'ss_hw6hb3m' },
+        { id: 'b5-s2',   name: 'Low row',                    meta: '4 x 15',      weight: 20, done: false, supersetId: 'ss_3iem9vj' },
+        { id: 'b6-s2',   name: 'Pec fly machine',            meta: '4 x 15',      weight: 20, done: false, supersetId: 'ss_3iem9vj' }
       ]
     },
-    { id: 'abs-s2', name: 'ABDOMINALS', exercises: [] }
+    {
+      id: 'abs-s2',
+      name: 'ABDOMINALS',
+      exercises: [
+        { id: '2aspfjq', name: 'Side plank raises (arm up)', meta: '3 x 30', weight: 0, done: false },
+        { id: 'gegxeb6', name: 'Roll ups',                   meta: '3 x 10', weight: 0, done: false }
+      ]
+    },
+    {
+      id: 'z3t3ukj',
+      name: 'STRETCH',
+      exercises: [
+        { id: 'c16ykps', name: 'Chest stretch', meta: '2 x 1 min/side', weight: 0, done: false },
+        { id: 'aplqbtp', name: 'Lat stretch',   meta: '2 x 1 min',      weight: 0, done: false }
+      ]
+    }
   ];
-  
-  // Session 3: BICEPS + TRICEPS
+
+  // Session 3: ARMS
   const SESSION_3_GROUPS = [
-    buildWarmUp('s3'),
+    {
+      id: 'warmup-s3',
+      name: 'WARM UP',
+      exercises: [
+        { id: 'w1-s3',   name: 'Shoulder dislocations (band)', meta: '4 x 15', weight: 0,    done: false },
+        { id: 'w2-s3',   name: 'Rotator cuff (band)',          meta: '4 x 15', weight: 0,    done: false },
+        { id: 'pbxmkgh', name: 'Spin bike',                    meta: '5 min',  weight: 0.25, done: false, unit: 'min' },
+        { id: 'mjnvhyi', name: 'Row machine',                  meta: '5 min',  weight: 0,    done: false }
+      ]
+    },
     {
       id: 'arms-s3',
       name: 'ARMS',
       exercises: [
-        { id: 'a1-s3', name: 'Barbell curls', meta: '4 x 15 (F-2 bar)', weight: 2.5, done: false },
-        { id: 'a2-s3', name: 'Lying barbell extensions', meta: '4 x 15 (F-2 bar)', weight: 2.5, done: false },
-        { id: 'a3-s3', name: 'Preacher curls', meta: '4 x 15 (DB)', weight: 4, done: false },
-        { id: 'a4-s3', name: 'Seated DB extensions', meta: '4 x 10 (DB)', weight: 4, done: false },
-        { id: 'a5-s3', name: 'Incline hammer curls', meta: '4 x 10 (DB)', weight: 6, done: false },
-        { id: 'a6-s3', name: 'Tricep dips', meta: '4 x 10', weight: 0, done: false }
+        { id: 'a1-s3', name: 'Barbell curls',              meta: '4 x 15 (F-2 bar)', weight: 2.5, done: false, supersetId: 'ss_e3lxsoe' },
+        { id: 'a2-s3', name: 'Lying barbell extensions',   meta: '4 x 15 (F-2 bar)', weight: 2.5, done: false, supersetId: 'ss_e3lxsoe' },
+        { id: 'a3-s3', name: 'Preacher curls',             meta: '4 x 15 (DB)',      weight: 6,   done: false, supersetId: 'ss_iujcud4' },
+        { id: 'a4-s3', name: 'Seated DB extensions',       meta: '4 x 10 (DB)',      weight: 6,   done: false, supersetId: 'ss_iujcud4' },
+        { id: 'a5-s3', name: 'Incline hammer curls',       meta: '4 x 10 (DB)',      weight: 6,   done: false, supersetId: 'ss_7fav50v' },
+        { id: 'a6-s3', name: 'Tricep dips',                meta: '4 x 10',           weight: 0,   done: false, supersetId: 'ss_7fav50v' }
       ]
     },
-    { id: 'abs-s3', name: 'ABDOMINALS', exercises: [] }
+    {
+      id: 'abs-s3',
+      name: 'ABDOMINALS',
+      exercises: [
+        { id: 'n4648zi', name: 'Side plank raises', meta: '4 x 15', weight: 0, done: false }
+      ]
+    }
   ];
-  
-  // Helper kept for migration backward compatibility
-  function duplicateGroups(srcGroups, sessionTag) {
-    return srcGroups.map(g => ({
-      id: g.id.replace(/-s\d+$/, '') + '-' + sessionTag,
-      name: g.name,
-      exercises: g.exercises.map(e => ({
-        ...e,
-        id: e.id.replace(/-s\d+$/, '') + '-' + sessionTag,
-        done: false,
-        supersetId: undefined
-      }))
-    }));
-  }
   
   // ---- Default workout type (the original Lift.Log program) ----
   const DEFAULT_WORKOUT_TYPE_ID = 'lift-log';
