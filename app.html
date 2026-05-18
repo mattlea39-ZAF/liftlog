@@ -1966,16 +1966,65 @@
     }
   ];
   
-  // ---- Default workout type (the original Lift.Log program) ----
+  // ---- Default workout types ----
+  // The original Lift.Log program is the "default" (DEFAULT_WORKOUT_TYPE_ID),
+  // labelled as Darren's workout. Rob's 3-day split is seeded alongside.
   const DEFAULT_WORKOUT_TYPE_ID = 'lift-log';
+  const ROBS_WORKOUT_ID = 'robs-workout';
+
+  const ROBS_SESSION_1 = [
+    { id: 'r1-s1', name: 'Face Pull (Cable)',              meta: '3 sets · Shoulders', weight: 0, done: false },
+    { id: 'r2-s1', name: 'Single Arm Cable Row Machine',   meta: '3 sets · Back',      weight: 0, done: false },
+    { id: 'r3-s1', name: 'Hip Abductor (Machine)',         meta: '4 sets · Legs',      weight: 0, done: false },
+    { id: 'r4-s1', name: 'Hip Adductor (Machine)',         meta: '4 sets · Legs',      weight: 0, done: false },
+    { id: 'r5-s1', name: 'Seated Overhead Press (Dumbbell)', meta: '3 sets · Shoulders', weight: 0, done: false },
+    { id: 'r6-s1', name: 'Cable B-stance Leg Press',       meta: '3 sets · Legs',      weight: 0, done: false },
+    { id: 'r7-s1', name: 'Triceps Extension (Cable)',      meta: '4 sets · Arms',      weight: 0, done: false },
+    { id: 'r8-s1', name: 'Bicep Curl (Cable)',             meta: '4 sets · Arms',      weight: 0, done: false }
+  ];
+
+  const ROBS_SESSION_2 = [
+    { id: 'r1-s2', name: 'Reverse Fly (Machine)',          meta: '3 sets · Shoulders', weight: 0, done: false },
+    { id: 'r2-s2', name: 'Bench Press (Dumbbell)',         meta: '3 sets · Chest',     weight: 0, done: false },
+    { id: 'r3-s2', name: 'Romanian Deadlift (Dumbbell)',   meta: '3 sets · Legs',      weight: 0, done: false },
+    { id: 'r4-s2', name: 'Incline Chest Fly (Dumbbell)',   meta: '3 sets · Chest',     weight: 0, done: false },
+    { id: 'r5-s2', name: 'Leg Extension (Machine)',        meta: '3 sets · Legs',      weight: 0, done: false },
+    { id: 'r6-s2', name: 'Back Extension',                 meta: '3 sets · Back',      weight: 0, done: false },
+    { id: 'r7-s2', name: 'Calf Press on Seated Leg Press', meta: '3 sets · Legs',      weight: 0, done: false },
+    { id: 'r8-s2', name: 'Supinated DB Bicep Curl',        meta: '3 sets · Arms',      weight: 0, done: false },
+    { id: 'r9-s2', name: 'Side Bend (Dumbbell)',           meta: '3 sets · Core',      weight: 0, done: false }
+  ];
+
+  const ROBS_SESSION_3 = [
+    { id: 'r1-s3',  name: 'Face Pull (Cable)',         meta: '3 sets · Shoulders', weight: 0, done: false },
+    { id: 'r2-s3',  name: 'Pull Up (Assisted)',        meta: '3 sets · Back',      weight: 0, done: false },
+    { id: 'r3-s3',  name: 'Lat Pulldown (Cable)',      meta: '3 sets · Back',      weight: 0, done: false },
+    { id: 'r4-s3',  name: 'Glute Kickback (Machine)',  meta: '3 sets · Legs',      weight: 0, done: false },
+    { id: 'r5-s3',  name: 'Reverse Fly (Machine)',     meta: '3 sets · Shoulders', weight: 0, done: false },
+    { id: 'r6-s3',  name: 'Lateral Raise (Dumbbell)',  meta: '3 sets · Shoulders', weight: 0, done: false },
+    { id: 'r7-s3',  name: 'Hip Thrust (Barbell)',      meta: '3 sets · Legs',      weight: 0, done: false },
+    { id: 'r8-s3',  name: 'Bicep Curl (Dumbbell)',     meta: '3 sets · Arms',      weight: 0, done: false },
+    { id: 'r9-s3',  name: 'Decline Crunch',            meta: '3 sets · Core',      weight: 0, done: false },
+    { id: 'r10-s3', name: 'Triceps Extension',         meta: '3 sets · Arms',      weight: 0, done: false }
+  ];
+
   const DEFAULT_WORKOUT_TYPES = {
     'lift-log': {
       id: 'lift-log',
-      name: 'Lift.Log',
+      name: "Darren's workout",
       sessions: {
         1: { name: 'LEGS',         groups: SESSION_1_GROUPS },
         2: { name: 'CHEST + BACK', groups: SESSION_2_GROUPS },
         3: { name: 'ARMS',         groups: SESSION_3_GROUPS }
+      }
+    },
+    'robs-workout': {
+      id: 'robs-workout',
+      name: "Rob's workout",
+      sessions: {
+        1: { name: 'DAY 1', groups: [{ id: 'robs-s1-main', name: 'WORKOUT', exercises: ROBS_SESSION_1 }] },
+        2: { name: 'DAY 2', groups: [{ id: 'robs-s2-main', name: 'WORKOUT', exercises: ROBS_SESSION_2 }] },
+        3: { name: 'DAY 3', groups: [{ id: 'robs-s3-main', name: 'WORKOUT', exercises: ROBS_SESSION_3 }] }
       }
     }
   };
@@ -2220,6 +2269,17 @@
       s.meta.session = parseInt(Object.keys(activeWT.sessions)[0], 10);
     }
     s.schemaVersion = 6;
+
+    // One-shot migrations for existing users
+    // 1) Rename the original "Lift.Log" default to "Darren's workout"
+    if (s.workoutTypes[DEFAULT_WORKOUT_TYPE_ID] && s.workoutTypes[DEFAULT_WORKOUT_TYPE_ID].name === 'Lift.Log') {
+      s.workoutTypes[DEFAULT_WORKOUT_TYPE_ID].name = "Darren's workout";
+    }
+    // 2) Seed Rob's workout once (skip if user has already deleted it)
+    if (!s.workoutTypes[ROBS_WORKOUT_ID] && !s.meta.seededRobsWorkout) {
+      s.workoutTypes[ROBS_WORKOUT_ID] = JSON.parse(JSON.stringify(DEFAULT_WORKOUT_TYPES[ROBS_WORKOUT_ID]));
+      s.meta.seededRobsWorkout = true;
+    }
 
     return attachGroupsGetter(s);
   }
