@@ -33,11 +33,14 @@ async function handleInbound(request, env) {
   try {
     form = await request.formData();
   } catch (err) {
+    console.error('formData parse failed:', err && err.message);
     return new Response('bad request', { status: 400 });
   }
 
   const body = (form.get('Body') || '').trim();
   const from = form.get('From') || '';
+
+  console.log('inbound:', JSON.stringify({ from, body, sidPresent: !!env.TWILIO_ACCOUNT_SID, tokenPresent: !!env.TWILIO_AUTH_TOKEN }));
 
   const reply = parseReply(body);
 
@@ -46,7 +49,8 @@ async function handleInbound(request, env) {
   try {
     await sendTwilio(env, from, reply);
   } catch (err) {
-    return new Response('twilio send failed: ' + err.message, { status: 500 });
+    console.error('sendTwilio failed:', err && err.message, err && err.stack);
+    return new Response('twilio send failed: ' + (err && err.message), { status: 500 });
   }
 
   // Twilio is happy with an empty 200.
