@@ -16,7 +16,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script>if (window !== window.top) document.documentElement.classList.add('framed');</script>
 <style>
-  html.framed #installHint { display: none !important; }
   html.framed { scrollbar-width: none; }
   html.framed::-webkit-scrollbar { display: none; }
   html.framed body::-webkit-scrollbar { display: none; }
@@ -102,7 +101,12 @@
     border-radius: 6px;
     cursor: pointer;
     transition: background 0.15s, color 0.15s;
+    background: transparent;
+    border: 0;
+    -webkit-appearance: none;
+    appearance: none;
   }
+  button.date { font: inherit; line-height: normal; }
 
   .date:active { background: var(--surface-2); }
 
@@ -1173,32 +1177,6 @@
     font-weight: 400;
   }
 
-  .install-hint {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 20px;
-    font-size: 12px;
-    color: var(--text-dim);
-    line-height: 1.5;
-    position: relative;
-  }
-
-  .install-hint strong { color: var(--accent); font-weight: 700; }
-
-  .install-hint .close {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    background: transparent;
-    border: none;
-    color: var(--text-dim);
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    font-size: 16px;
-  }
 
   .reorder-controls {
     display: flex;
@@ -1539,6 +1517,19 @@
   .group-move-btn:disabled:active { background: var(--surface); color: var(--text-dim); border-color: var(--border); }
 
   /* ---------- Calendar picker ---------- */
+  /* Override the global bottom-sheet behavior so the calendar floats centered */
+  #calendarPicker { align-items: center; }
+  #calendarPicker .modal {
+    border-radius: 16px;
+    width: 320px;
+    max-width: 92vw;
+    padding: 16px;
+    animation: calFade 0.18s ease-out;
+  }
+  @keyframes calFade {
+    from { opacity: 0; transform: scale(0.96); }
+    to   { opacity: 1; transform: scale(1); }
+  }
   .calendar-modal { width: 320px; max-width: 92vw; padding: 16px; }
   .calendar-nav {
     display: flex;
@@ -1683,14 +1674,7 @@
 
 <div class="container">
 
-  <div class="install-hint" id="installHint">
-    <button class="close" onclick="dismissHint()">×</button>
-    <strong>ADD TO HOME SCREEN</strong><br>
-    iPhone: tap Share → Add to Home Screen.<br>
-    Android: tap menu → Install app / Add to Home screen.
-  </div>
-
-  <div id="sessionCompleteBar" class="session-complete-bar" style="display:none;">
+<div id="sessionCompleteBar" class="session-complete-bar" style="display:none;">
     <div class="scb-info">
       <div class="scb-title" id="scbTitle">SESSION COMPLETE</div>
       <div class="scb-meta" id="scbMeta">Logged for today</div>
@@ -3438,15 +3422,6 @@
     };
     reader.onerror = () => alert('Could not read backup file.');
     reader.readAsText(file);
-  }
-
-  function dismissHint() {
-    document.getElementById('installHint').style.display = 'none';
-    localStorage.setItem('liftlog_hint_dismissed', '1');
-  }
-
-  if (localStorage.getItem('liftlog_hint_dismissed')) {
-    document.getElementById('installHint').style.display = 'none';
   }
 
   // Close modals on backdrop click
