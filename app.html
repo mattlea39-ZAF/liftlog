@@ -105,6 +105,7 @@
     border: 0;
     -webkit-appearance: none;
     appearance: none;
+    white-space: nowrap;
   }
   button.date { font: inherit; line-height: normal; }
 
@@ -2053,7 +2054,7 @@
 
   function formatDateLong(key) {
     const d = new Date(key + 'T00:00:00');
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).toUpperCase();
   }
   function formatDateShort(key) {
     const d = new Date(key + 'T00:00:00');
