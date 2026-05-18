@@ -3000,8 +3000,14 @@
   }
   
   function exportData() {
-    // Serialize without the getter
-    const toExport = { meta: state.meta, sessions: state.sessions, log: state.log };
+    // v6 shape — schemaVersion + meta + workoutTypes + log. The `groups` getter on state
+    // is non-enumerable but we list keys explicitly to be safe.
+    const toExport = {
+      schemaVersion: 6,
+      meta: state.meta,
+      workoutTypes: state.workoutTypes,
+      log: state.log
+    };
     const blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3069,10 +3075,9 @@
     }
     return { date: en.date, weights };
   }
-  function sanitizeImported(raw) {
-    if (!raw || typeof raw !== 'object') throw new Error('Backup root is not an object');
-    if (!raw.sessions || typeof raw.sessions !== 'object') throw new Error('Backup has no sessions');
-
+  // Validate a v5-shaped backup (nested log keyed by sessionId 1-3) and return a v5-shaped
+  // cleaned object. The caller is expected to run migrateV5toV6 on the result.
+  function sanitizeV5Imported(raw) {
     const out = { meta: {}, sessions: {}, log: {} };
 
     const m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
@@ -3104,6 +3109,128 @@
       });
     }
     return out;
+  }
+
+  // Sanitize a v6-shaped backup directly. Returns a complete v6 state object.
+  function sanitizeV6Imported(raw) {
+    const out = {
+      schemaVersion: 6,
+      meta: {},
+      workoutTypes: {},
+      log: {}
+    };
+
+    // ---- meta ----
+    const m = raw.meta && typeof raw.meta === 'object' ? raw.meta : {};
+    out.meta.session = clampInt(m.session, 1, 1000, 1);
+    out.meta.frequency = clipStr(m.frequency, 64) || '2x a week';
+    if (typeof m.lastActiveDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.lastActiveDate)) {
+      out.meta.lastActiveDate = m.lastActiveDate;
+    }
+    // workoutType is resolved after workoutTypes are sanitized below.
+
+    // ---- workoutTypes ----
+    const wtRaw = raw.workoutTypes;
+    if (!wtRaw || typeof wtRaw !== 'object') {
+      throw new Error('Backup has no workoutTypes');
+    }
+    Object.keys(wtRaw).slice(0, 50).forEach(typeKey => {
+      const wt = wtRaw[typeKey];
+      if (!wt || typeof wt !== 'object') return;
+      const id = clipStr(wt.id, 64) || clipStr(typeKey, 64);
+      if (!id) return;
+      const name = clipStr(wt.name, 200) || id;
+      const sessionsOut = {};
+      const sessionsRaw = wt.sessions;
+      if (sessionsRaw && typeof sessionsRaw === 'object') {
+        Object.keys(sessionsRaw).slice(0, 50).forEach(sidKey => {
+          // session keys must be positive integers as strings (1-50 sessions max).
+          if (!/^[1-9][0-9]*$/.test(sidKey)) return;
+          const sidNum = parseInt(sidKey, 10);
+          if (!Number.isFinite(sidNum) || sidNum < 1 || sidNum > 50) return;
+          const sess = sessionsRaw[sidKey];
+          if (!sess || typeof sess !== 'object') return;
+          const sessName = clipStr(sess.name, 200) || `SESSION ${sidNum}`;
+          const groups = Array.isArray(sess.groups)
+            ? sess.groups.slice(0, 50).map(sanitizeGroup).filter(Boolean)
+            : [];
+          sessionsOut[sidNum] = { name: sessName, groups };
+        });
+      }
+      out.workoutTypes[id] = { id, name, sessions: sessionsOut };
+    });
+
+    if (Object.keys(out.workoutTypes).length === 0) {
+      throw new Error('Backup has no valid workout types');
+    }
+
+    // Resolve meta.workoutType against the cleaned set.
+    const requestedType = clipStr(m.workoutType, 64);
+    if (requestedType && out.workoutTypes[requestedType]) {
+      out.meta.workoutType = requestedType;
+    } else if (out.workoutTypes[DEFAULT_WORKOUT_TYPE_ID]) {
+      out.meta.workoutType = DEFAULT_WORKOUT_TYPE_ID;
+    } else {
+      out.meta.workoutType = Object.keys(out.workoutTypes)[0];
+    }
+
+    // Resolve meta.session against the cleaned active workout type.
+    const activeWT = out.workoutTypes[out.meta.workoutType];
+    const sids = Object.keys(activeWT.sessions).map(n => parseInt(n, 10));
+    if (sids.length > 0 && sids.indexOf(out.meta.session) === -1) {
+      out.meta.session = Math.min(...sids);
+    } else if (sids.length === 0) {
+      out.meta.session = 1;
+    }
+
+    // ---- log (flat tagged array per month) ----
+    if (raw.log && typeof raw.log === 'object') {
+      Object.keys(raw.log).slice(0, 600).forEach(month => {
+        if (!/^\d{4}-\d{2}$/.test(month)) return;
+        const arr = raw.log[month];
+        if (!Array.isArray(arr)) return;
+        const cleanEntries = [];
+        arr.slice(0, 200).forEach(en => {
+          if (!en || typeof en !== 'object') return;
+          const wtId = clipStr(en.workoutType, 64);
+          if (!wtId || !out.workoutTypes[wtId]) return; // drop unknown types
+          const sessionId = clampInt(en.sessionId, 1, 1000, NaN);
+          if (!Number.isFinite(sessionId)) return;
+          const base = sanitizeLogEntry(en);
+          if (!base) return;
+          cleanEntries.push({
+            workoutType: wtId,
+            sessionId,
+            date: base.date,
+            weights: base.weights
+          });
+        });
+        if (cleanEntries.length) out.log[month] = cleanEntries;
+      });
+    }
+
+    return out;
+  }
+
+  function sanitizeImported(raw) {
+    if (!raw || typeof raw !== 'object') throw new Error('Backup root is not an object');
+
+    const hasV6 = raw.workoutTypes && typeof raw.workoutTypes === 'object' && !Array.isArray(raw.workoutTypes);
+    const hasV5 = !hasV6
+      && raw.sessions && typeof raw.sessions === 'object' && !Array.isArray(raw.sessions)
+      && (Object.prototype.hasOwnProperty.call(raw.sessions, '1')
+        || Object.prototype.hasOwnProperty.call(raw.sessions, '2')
+        || Object.prototype.hasOwnProperty.call(raw.sessions, '3')
+        || Object.keys(raw.sessions).length === 0);
+
+    if (hasV6) {
+      return sanitizeV6Imported(raw);
+    }
+    if (hasV5) {
+      const cleanedV5 = sanitizeV5Imported(raw);
+      return migrateV5toV6(cleanedV5);
+    }
+    throw new Error('Backup is neither a v5 nor a v6 Lift.Log backup');
   }
 
   function importData(event) {
