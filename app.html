@@ -2194,10 +2194,14 @@
   function isSessionLoggedToday() {
     const date = activeDateKey();
     const month = date.slice(0, 7);
-    const sessionId = String(state.meta.session);
-    const monthLog = state.log[month] || {};
-    const sessionEntries = monthLog[sessionId] || [];
-    return sessionEntries.some(e => e.date === date);
+    const workoutType = state.meta.workoutType;
+    const sessionId = parseInt(state.meta.session, 10);
+    const monthArr = Array.isArray(state.log[month]) ? state.log[month] : [];
+    return monthArr.some(e =>
+      e.workoutType === workoutType &&
+      parseInt(e.sessionId, 10) === sessionId &&
+      e.date === date
+    );
   }
   
   function updateSessionCompleteBar(total, done) {
@@ -2248,9 +2252,9 @@
   function logSession() {
     const date = activeDateKey();
     const month = date.slice(0, 7);
-    const sessionId = String(state.meta.session);
-    if (!state.log[month]) state.log[month] = {};
-    if (!state.log[month][sessionId]) state.log[month][sessionId] = [];
+    const workoutType = state.meta.workoutType;
+    const sessionId = parseInt(state.meta.session, 10);
+    if (!Array.isArray(state.log[month])) state.log[month] = [];
 
     // Snapshot current weights
     const weights = {};
@@ -2262,9 +2266,14 @@
       };
     }));
 
-    // Dedupe: only one entry per date+session
-    if (!state.log[month][sessionId].some(e => e.date === date)) {
-      state.log[month][sessionId].push({ date, weights });
+    // Dedupe: only one entry per (workoutType, sessionId, date)
+    const exists = state.log[month].some(e =>
+      e.workoutType === workoutType &&
+      parseInt(e.sessionId, 10) === sessionId &&
+      e.date === date
+    );
+    if (!exists) {
+      state.log[month].push({ workoutType, sessionId, date, weights });
     }
     saveState();
 
@@ -2281,9 +2290,15 @@
   function unlogSession() {
     const date = activeDateKey();
     const month = date.slice(0, 7);
-    const sessionId = String(state.meta.session);
-    if (!state.log[month] || !state.log[month][sessionId]) return;
-    state.log[month][sessionId] = state.log[month][sessionId].filter(e => e.date !== date);
+    const workoutType = state.meta.workoutType;
+    const sessionId = parseInt(state.meta.session, 10);
+    if (!Array.isArray(state.log[month])) return;
+    state.log[month] = state.log[month].filter(e => !(
+      e.workoutType === workoutType &&
+      parseInt(e.sessionId, 10) === sessionId &&
+      e.date === date
+    ));
+    if (state.log[month].length === 0) delete state.log[month];
     saveState();
   }
   
@@ -2344,17 +2359,23 @@
     if (isToday()) { clearPendingBackdate(); return; }
     if (!hasAnyTicks()) { clearPendingBackdate(); return; }
     const date = activeDateKey();
-    const sessionId = String(state.meta.session);
-    // Don't track if already logged for that date
+    const workoutType = state.meta.workoutType;
+    const sessionId = parseInt(state.meta.session, 10);
+    // Don't track if already logged for that (workoutType, sessionId, date)
     const month = date.slice(0, 7);
-    const entries = (state.log[month] && state.log[month][sessionId]) || [];
-    if (entries.some(e => e.date === date)) { clearPendingBackdate(); return; }
+    const monthArr = Array.isArray(state.log[month]) ? state.log[month] : [];
+    const alreadyLogged = monthArr.some(e =>
+      e.workoutType === workoutType &&
+      parseInt(e.sessionId, 10) === sessionId &&
+      e.date === date
+    );
+    if (alreadyLogged) { clearPendingBackdate(); return; }
     const weights = {};
     state.groups.forEach(g => g.exercises.forEach(e => {
       weights[e.id] = { name: e.name, weight: parseFloat(e.weight) || 0, unit: e.unit || 'kg' };
     }));
     try {
-      localStorage.setItem('liftlog_pending_backdate', JSON.stringify({ date, sessionId, weights }));
+      localStorage.setItem('liftlog_pending_backdate', JSON.stringify({ workoutType, date, sessionId, weights }));
     } catch (e) {}
   }
 
@@ -2373,8 +2394,15 @@
     if (!p || !p.date) { clearPendingBackdate(); return; }
     if (p.date === todayKey()) { clearPendingBackdate(); return; }
     const month = p.date.slice(0, 7);
-    const entries = (state.log[month] && state.log[month][p.sessionId]) || [];
-    if (entries.some(e => e.date === p.date)) { clearPendingBackdate(); return; }
+    const pWorkoutType = p.workoutType || 'lift-log';
+    const pSessionId = parseInt(p.sessionId, 10);
+    const monthArr = Array.isArray(state.log[month]) ? state.log[month] : [];
+    const already = monthArr.some(e =>
+      e.workoutType === pWorkoutType &&
+      parseInt(e.sessionId, 10) === pSessionId &&
+      e.date === p.date
+    );
+    if (already) { clearPendingBackdate(); return; }
     document.getElementById('rbDate').textContent = formatDateLong(p.date);
     banner.classList.add('show');
   }
@@ -2386,10 +2414,16 @@
       try {
         const p = JSON.parse(raw);
         const month = p.date.slice(0, 7);
-        if (!state.log[month]) state.log[month] = {};
-        if (!state.log[month][p.sessionId]) state.log[month][p.sessionId] = [];
-        if (!state.log[month][p.sessionId].some(e => e.date === p.date)) {
-          state.log[month][p.sessionId].push({ date: p.date, weights: p.weights || {} });
+        const workoutType = p.workoutType || 'lift-log';
+        const sessionId = parseInt(p.sessionId, 10);
+        if (!Array.isArray(state.log[month])) state.log[month] = [];
+        const exists = state.log[month].some(e =>
+          e.workoutType === workoutType &&
+          parseInt(e.sessionId, 10) === sessionId &&
+          e.date === p.date
+        );
+        if (!exists) {
+          state.log[month].push({ workoutType, sessionId, date: p.date, weights: p.weights || {} });
         }
       } catch (e) {}
     }
