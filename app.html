@@ -46,9 +46,22 @@
 
   body {
     padding: var(--header-h, 130px) env(safe-area-inset-right) calc(env(safe-area-inset-bottom) + 24px) env(safe-area-inset-left);
-    background-image: 
+    background-image:
       radial-gradient(circle at 20% 0%, rgba(212, 255, 0, 0.04) 0%, transparent 40%),
       radial-gradient(circle at 80% 100%, rgba(212, 255, 0, 0.03) 0%, transparent 40%);
+    /* App-wide: kill iOS long-press text selection + magnifier loupe */
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* Re-enable text selection only inside actual edit fields */
+  input, textarea, [contenteditable] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  /* Re-enable iOS long-press menu only when an editable field is focused */
+  input:focus, textarea:focus, [contenteditable]:focus {
+    -webkit-touch-callout: default;
   }
 
   .header {
@@ -795,17 +808,15 @@
   }
 
   .wt-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 12px 14px;
+    padding: 14px 16px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 10px;
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 8px;
   }
+  .wt-row:last-child { margin-bottom: 0; }
 
   .wt-row:active { background: var(--surface-2); }
 
@@ -832,27 +843,26 @@
     text-transform: uppercase;
   }
 
-  .wt-row-actions {
-    display: flex;
-    gap: 6px;
-    flex-shrink: 0;
+  /* Workout-type action sheet (Rename / Delete) */
+  #wtActionModal .modal { padding: 20px; }
+  #wtActionModal .wt-action-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+    margin-bottom: 4px;
   }
-
-  .wt-row-action {
-    padding: 6px 10px;
-    border-radius: 8px;
+  #wtActionModal .wt-action-hint {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: var(--surface-2);
-    color: var(--text);
+    margin-bottom: 18px;
   }
-
-  .wt-row-action:active { background: var(--surface); }
+  #wtActionModal .modal-buttons { flex-direction: column; gap: 8px; }
+  #wtActionModal .modal-btn { padding: 14px; }
+  #wtActionModal .wt-action-danger { color: var(--danger); border-color: var(--danger); }
 
   /* Session Complete Bar */
   .session-complete-bar {
@@ -1520,16 +1530,16 @@
   .group-move-btn:disabled { opacity: 0.25; }
   .group-move-btn:disabled:active { background: var(--surface); color: var(--text-dim); border-color: var(--border); }
 
-  /* ---------- Calendar picker ---------- */
-  /* Override the global bottom-sheet behavior so the calendar floats centered */
-  #calendarPicker { align-items: center; }
-  #calendarPicker .modal {
+  /* ---------- Centered modals (calendar picker + workout-type picker) ---------- */
+  /* Override the global bottom-sheet behavior so these float in the middle */
+  #calendarPicker, #workoutTypeModal, #wtActionModal { align-items: center; }
+  #calendarPicker .modal, #workoutTypeModal .modal, #wtActionModal .modal {
     border-radius: 16px;
     width: 320px;
     max-width: 92vw;
-    padding: 16px;
     animation: calFade 0.18s ease-out;
   }
+  #calendarPicker .modal { padding: 16px; }
   @keyframes calFade {
     from { opacity: 0; transform: scale(0.96); }
     to   { opacity: 1; transform: scale(1); }
@@ -1832,6 +1842,19 @@
     <button class="modal-btn primary" onclick="addWorkoutType()" style="width:100%; margin-top:10px;">+ NEW WORKOUT TYPE</button>
     <div class="modal-buttons" style="margin-top:14px;">
       <button class="modal-btn" onclick="closeModal('workoutTypeModal')">CLOSE</button>
+    </div>
+  </div>
+</div>
+
+<!-- Workout-type long-press action sheet -->
+<div class="modal-backdrop" id="wtActionModal">
+  <div class="modal">
+    <div class="wt-action-title" id="wtActionTitle">—</div>
+    <div class="wt-action-hint">Workout type</div>
+    <div class="modal-buttons">
+      <button class="modal-btn primary" onclick="wtActionRename()">RENAME</button>
+      <button class="modal-btn wt-action-danger" id="wtActionDelete" onclick="wtActionDelete()">DELETE</button>
+      <button class="modal-btn" onclick="closeModal('wtActionModal')">CANCEL</button>
     </div>
   </div>
 </div>
@@ -3966,20 +3989,72 @@
       const wt = state.workoutTypes[id];
       const isActive = id === state.meta.workoutType;
       const sessionCount = wt.sessions ? Object.keys(wt.sessions).length : 0;
-      const canDelete = id !== DEFAULT_WORKOUT_TYPE_ID && ids.length > 1;
       return `
-        <div class="wt-row ${isActive ? 'wt-row-active' : ''}" onclick="switchWorkoutType('${id}')">
-          <div>
-            <div class="wt-row-name">${escapeHtml(wt.name || id)}</div>
-            <div class="wt-row-meta">${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}${isActive ? ' · ACTIVE' : ''}</div>
-          </div>
-          <div class="wt-row-actions" onclick="event.stopPropagation()">
-            <button class="wt-row-action" onclick="renameWorkoutType('${id}')">RENAME</button>
-            ${canDelete ? `<button class="wt-row-action" style="color:var(--danger)" onclick="deleteWorkoutType('${id}')">DELETE</button>` : ''}
-          </div>
+        <div class="wt-row ${isActive ? 'wt-row-active' : ''}"
+             data-wt-id="${id}"
+             onpointerdown="wtRowPointerDown(event, '${id}')"
+             onpointerup="wtRowPointerUp(event, '${id}')"
+             onpointercancel="wtRowPointerCancel()"
+             onpointerleave="wtRowPointerCancel()">
+          <div class="wt-row-name">${escapeHtml(wt.name || id)}</div>
+          <div class="wt-row-meta">${sessionCount} ${sessionCount === 1 ? 'session' : 'sessions'}${isActive ? ' · ACTIVE' : ''}</div>
         </div>
       `;
     }).join('');
+  }
+
+  // ---- Long-press detection for workout-type rows ----
+  // Tap = switch to that workout type. Hold ~400ms = open rename/delete sheet.
+  let _wtPressTimer = null;
+  let _wtPressFired = false;
+
+  function wtRowPointerDown(ev, id) {
+    _wtPressFired = false;
+    if (_wtPressTimer) clearTimeout(_wtPressTimer);
+    _wtPressTimer = setTimeout(() => {
+      _wtPressFired = true;
+      if (navigator.vibrate) navigator.vibrate(15);
+      openWtActionMenu(id);
+    }, 400);
+  }
+
+  function wtRowPointerUp(ev, id) {
+    if (_wtPressTimer) { clearTimeout(_wtPressTimer); _wtPressTimer = null; }
+    if (!_wtPressFired) {
+      // It was a tap → switch workout type
+      switchWorkoutType(id);
+    }
+    _wtPressFired = false;
+  }
+
+  function wtRowPointerCancel() {
+    if (_wtPressTimer) { clearTimeout(_wtPressTimer); _wtPressTimer = null; }
+    _wtPressFired = false;
+  }
+
+  // ---- Rename / delete action sheet ----
+  let _wtActionTargetId = null;
+
+  function openWtActionMenu(id) {
+    _wtActionTargetId = id;
+    const wt = state.workoutTypes[id];
+    if (!wt) return;
+    document.getElementById('wtActionTitle').textContent = wt.name || id;
+    const canDelete = id !== DEFAULT_WORKOUT_TYPE_ID && Object.keys(state.workoutTypes).length > 1;
+    document.getElementById('wtActionDelete').style.display = canDelete ? '' : 'none';
+    document.getElementById('wtActionModal').classList.add('active');
+  }
+
+  function wtActionRename() {
+    const id = _wtActionTargetId;
+    closeModal('wtActionModal');
+    if (id) renameWorkoutType(id);
+  }
+
+  function wtActionDelete() {
+    const id = _wtActionTargetId;
+    closeModal('wtActionModal');
+    if (id) deleteWorkoutType(id);
   }
 
   function switchWorkoutType(id) {
