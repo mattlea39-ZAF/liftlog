@@ -2419,12 +2419,18 @@
                 onchange="updateExerciseField('${group.id}','${ex.id}','meta',this.value)">
             </div>
             <div class="weight-control">
-              <button class="weight-btn" onclick="adjustWeight('${group.id}','${ex.id}',-${step})">−</button>
+              <button type="button" class="weight-btn"
+                onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',-${step})"
+                onpointerup="endWeightHold('${group.id}','${ex.id}',-${step})"
+                onpointercancel="cancelWeightHold()">−</button>
               <div class="weight-display" onclick="editWeight(this,'${group.id}','${ex.id}')">
                 <div class="weight-value">${formatValue(ex.weight, unit)}</div>
                 <div class="weight-unit">${unitLabel}</div>
               </div>
-              <button class="weight-btn" onclick="adjustWeight('${group.id}','${ex.id}',${step})">+</button>
+              <button type="button" class="weight-btn"
+                onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',${step})"
+                onpointerup="endWeightHold('${group.id}','${ex.id}',${step})"
+                onpointercancel="cancelWeightHold()">+</button>
             </div>
           </div>
           <div class="exercise-actions edit-only-actions">
@@ -2872,6 +2878,73 @@
     saveState();
     render();
   }
+
+  // ---- Press-and-hold weight adjuster ----
+  // Tap fires one step; hold ~400ms starts auto-firing with acceleration.
+  // During the hold we only update state + the visible weight number (no full
+  // render) so the button being pressed doesn't get destroyed mid-press.
+  // On release we call render() once to sync the rest of the UI.
+  let _whTimer = null;
+  let _whFired = false;
+  let _whInterval = 120;
+
+  function _adjustDirect(gId, eId, delta) {
+    const g = state.groups.find(g => g.id === gId);
+    if (!g) return;
+    const ex = g.exercises.find(e => e.id === eId);
+    if (!ex) return;
+    let w = parseFloat(ex.weight) || 0;
+    w = Math.max(0, +(w + delta).toFixed(2));
+    ex.weight = w;
+    // Patch the visible weight without rebuilding the DOM
+    const card = document.querySelector(`.exercise[data-eid="${eId}"]`);
+    if (card) {
+      const valEl = card.querySelector('.weight-value');
+      if (valEl) valEl.textContent = formatValue(w, ex.unit || 'kg');
+    }
+  }
+
+  function startWeightHold(ev, gId, eId, delta) {
+    cancelWeightHold();
+    _whFired = false;
+    _whInterval = 120;
+    _whTimer = setTimeout(() => {
+      _whFired = true;
+      const tick = () => {
+        _adjustDirect(gId, eId, delta);
+        if (navigator.vibrate) navigator.vibrate(4);
+        _whInterval = Math.max(60, _whInterval * 0.9);
+        _whTimer = setTimeout(tick, _whInterval);
+      };
+      tick();
+    }, 400);
+  }
+
+  function endWeightHold(gId, eId, delta) {
+    if (_whTimer) { clearTimeout(_whTimer); _whTimer = null; }
+    if (!_whFired) {
+      // Single tap → one step
+      adjustWeight(gId, eId, delta);
+    } else {
+      // Hold ended — persist and re-render once so all derived UI syncs
+      saveState();
+      render();
+    }
+    _whFired = false;
+  }
+
+  function cancelWeightHold() {
+    if (_whTimer) { clearTimeout(_whTimer); _whTimer = null; }
+    if (_whFired) {
+      // We were mid-hold; persist what we've got
+      saveState();
+      render();
+    }
+    _whFired = false;
+  }
+
+  // Safety: if the page loses focus mid-hold, stop firing
+  window.addEventListener('blur', cancelWeightHold);
 
   function editWeight(el, gId, eId) {
     const g = state.groups.find(g => g.id === gId);
