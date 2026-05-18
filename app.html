@@ -1537,6 +1537,96 @@
   .group-move-btn:active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
   .group-move-btn:disabled { opacity: 0.25; }
   .group-move-btn:disabled:active { background: var(--surface); color: var(--text-dim); border-color: var(--border); }
+
+  /* ---------- Calendar picker ---------- */
+  .calendar-modal { width: 320px; max-width: 92vw; padding: 16px; }
+  .calendar-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  .calendar-nav-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 18px;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .calendar-nav-btn:disabled { opacity: 0.25; cursor: default; }
+  .calendar-nav-btn:active:not(:disabled) { background: var(--surface-2); }
+  .calendar-month-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  .calendar-weekdays > div {
+    text-align: center;
+    font-size: 10px;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+    padding: 4px 0;
+  }
+  .calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid transparent;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .calendar-day.empty { background: transparent; cursor: default; }
+  .calendar-day.logged { background: #5b8def; color: #fff; font-weight: 600; }
+  .calendar-day.today { border-color: var(--accent); }
+  .calendar-day.active { background: var(--accent); color: var(--bg); font-weight: 700; border-color: var(--accent); }
+  .calendar-day.active.logged { background: var(--accent); color: var(--bg); }
+  .calendar-day.disabled { color: var(--text-dim); cursor: default; opacity: 0.25; background: transparent; }
+  .calendar-day:active:not(.disabled):not(.empty) { transform: scale(0.94); }
+  .calendar-legend {
+    display: flex;
+    gap: 16px;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 14px;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.1em;
+  }
+  .calendar-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+  }
+  .legend-logged { background: #5b8def; }
+  .legend-today { border: 1px solid var(--accent); }
+  .legend-active { background: var(--accent); }
 </style>
 </head>
 <body>
@@ -1545,10 +1635,9 @@
   <div class="header-top">
     <div class="logo">LIFT<span class="accent">.</span>LOG</div>
     <div style="display:flex; align-items:center; gap:8px;">
-      <label class="date" id="dateDisplay" aria-label="Pick date">
+      <button type="button" class="date" id="dateDisplay" aria-label="Pick date" onclick="openCalendarPicker()">
         <span id="dateLabel"></span>
-        <input type="date" id="datePicker" onchange="onDatePickerChange(event)">
-      </label>
+      </button>
       <button type="button" class="today-pill" id="todayPill" onclick="resetActiveDateToToday()">← TODAY</button>
       <button class="edit-toggle" id="dataToggle" onclick="openDataModal()" aria-label="Backup data">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1724,6 +1813,26 @@
 </div>
 
 <!-- Workout Type Picker Modal -->
+<!-- Calendar Picker Modal -->
+<div class="modal-backdrop" id="calendarPicker">
+  <div class="modal calendar-modal">
+    <div class="calendar-nav">
+      <button type="button" class="calendar-nav-btn" id="calPrev" onclick="changeCalendarMonth(-1)" aria-label="Previous month">‹</button>
+      <div class="calendar-month-label" id="calendarMonthLabel"></div>
+      <button type="button" class="calendar-nav-btn" id="calNext" onclick="changeCalendarMonth(1)" aria-label="Next month">›</button>
+    </div>
+    <div class="calendar-weekdays">
+      <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
+    </div>
+    <div class="calendar-days" id="calendarDays"></div>
+    <div class="calendar-legend">
+      <span><span class="legend-dot legend-logged"></span>LOGGED</span>
+      <span><span class="legend-dot legend-today"></span>TODAY</span>
+      <span><span class="legend-dot legend-active"></span>SELECTED</span>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="workoutTypeModal">
   <div class="modal">
     <h3>WORKOUTS</h3>
@@ -2135,13 +2244,6 @@
     const todayPill = document.getElementById('todayPill');
     if (todayPill) todayPill.classList.toggle('show', !isToday());
 
-    const picker = document.getElementById('datePicker');
-    if (picker) {
-      picker.min = daysAgo(90);
-      picker.max = todayKey();
-      picker.value = activeDateKey();
-    }
-
     // Sticky LOG LIFT pill — only when backdated, has ticks, and not yet logged for that date
     const llPill = document.getElementById('logLiftPill');
     if (llPill) {
@@ -2439,11 +2541,75 @@
 
   // ----- Active date / backdate flow -----
 
-  function onDatePickerChange(ev) {
-    const v = ev.target.value;
-    if (!v) return;
-    if (v < daysAgo(90) || v > todayKey()) return;
-    requestActiveDateChange(v);
+  // ---------- Custom calendar picker ----------
+  let calendarMonth = null;
+
+  function openCalendarPicker() {
+    calendarMonth = activeDateKey().slice(0, 7);
+    renderCalendar();
+    document.getElementById('calendarPicker').classList.add('active');
+  }
+
+  function changeCalendarMonth(delta) {
+    if (!calendarMonth) return;
+    const [y, m] = calendarMonth.split('-').map(Number);
+    const d = new Date(y, m - 1 + delta, 1);
+    calendarMonth = monthKey(d);
+    renderCalendar();
+  }
+
+  function renderCalendar() {
+    if (!calendarMonth) return;
+    const [y, m] = calendarMonth.split('-').map(Number);
+    const firstDay = new Date(y, m - 1, 1);
+    const lastDay = new Date(y, m, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+
+    // Logged dates this month across ALL workout types (one blue color, scope = any program)
+    const loggedDates = new Set();
+    const entries = state.log[calendarMonth];
+    if (Array.isArray(entries)) entries.forEach(e => { if (e && e.date) loggedDates.add(e.date); });
+
+    document.getElementById('calendarMonthLabel').textContent = formatMonthLabel(calendarMonth);
+
+    const today = todayKey();
+    const activeKey = activeDateKey();
+    const minKey = daysAgo(90);
+
+    // Disable prev/next when at the edges of the allowed range
+    const prevMonthEnd = (() => {
+      const d = new Date(y, m - 1, 0);
+      return monthKey(d) + '-' + String(d.getDate()).padStart(2, '0');
+    })();
+    const prevDisabled = prevMonthEnd < minKey;
+    const nextDisabled = calendarMonth >= today.slice(0, 7);
+    document.getElementById('calPrev').disabled = prevDisabled;
+    document.getElementById('calNext').disabled = nextDisabled;
+
+    let html = '';
+    for (let i = 0; i < startDayOfWeek; i++) html += '<div class="calendar-day empty"></div>';
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateKey = `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isFuture = dateKey > today;
+      const isTooOld = dateKey < minKey;
+      const disabled = isFuture || isTooOld;
+      const classes = [
+        'calendar-day',
+        loggedDates.has(dateKey) ? 'logged' : '',
+        dateKey === today ? 'today' : '',
+        dateKey === activeKey ? 'active' : '',
+        disabled ? 'disabled' : ''
+      ].filter(Boolean).join(' ');
+      const click = disabled ? '' : ` onclick="pickCalendarDay('${dateKey}')"`;
+      html += `<div class="${classes}"${click}>${day}</div>`;
+    }
+    document.getElementById('calendarDays').innerHTML = html;
+  }
+
+  function pickCalendarDay(dateKey) {
+    closeModal('calendarPicker');
+    requestActiveDateChange(dateKey);
   }
 
   function resetActiveDateToToday() {
