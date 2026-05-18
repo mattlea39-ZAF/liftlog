@@ -52,7 +52,7 @@
   }
 
   .header {
-    padding: calc(24px + env(safe-area-inset-top)) 20px 16px;
+    padding: calc(24px + env(safe-area-inset-top)) 16px 16px;
     border-bottom: 1px solid var(--border);
     position: fixed;
     top: 0;
@@ -65,16 +65,20 @@
   }
 
   .header-top {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 8px;
     margin-bottom: 4px;
   }
+  .header-left   { display: flex; align-items: center; }
+  .header-center { justify-self: center; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .header-right  { display: flex; align-items: center; gap: 8px; }
 
   .logo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    letter-spacing: 0.05em;
+    font-size: 26px;
+    letter-spacing: 0.04em;
     line-height: 1;
     cursor: pointer;
     transition: opacity 0.15s;
@@ -1210,13 +1214,12 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text);
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    margin-left: 8px;
     transition: all 0.2s;
     flex-shrink: 0;
   }
@@ -1625,12 +1628,16 @@
 
 <div class="header">
   <div class="header-top">
-    <div class="logo">LIFT<span class="accent">.</span>LOG</div>
-    <div style="display:flex; align-items:center; gap:8px;">
+    <div class="header-left">
+      <div class="logo">LIFT<span class="accent">.</span>LOG</div>
+    </div>
+    <div class="header-center">
       <button type="button" class="date" id="dateDisplay" aria-label="Pick date" onclick="openCalendarPicker()">
         <span id="dateLabel"></span>
       </button>
       <button type="button" class="today-pill" id="todayPill" onclick="resetActiveDateToToday()">← TODAY</button>
+    </div>
+    <div class="header-right">
       <button class="edit-toggle" id="dataToggle" onclick="openDataModal()" aria-label="Backup data">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
