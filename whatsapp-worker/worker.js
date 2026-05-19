@@ -171,7 +171,7 @@ export function parseMessage(body) {
   }
 
   // ---- Activity with duration ----
-  const ACTIVITY = '(swim|swimming|cycle|cycling|ride|riding|bike|biking|hike|hiking|walk|walking|run|running|jog|jogging|spinning(?:\\s+class)?|spin|yoga|stretch|stretching|workout)';
+  const ACTIVITY = '(swim|swimming|cycle|cycling|ride|riding|bike|biking|hike|hiking|walk|walking|run|running|jog|jogging|spinning(?:\\s+class)?|spin|yoga|stretch|stretching|workout|beach\\s*bats|matkot|padel|paddle\\s*ball)';
 
   // "1h30 hike" / "1h 30 hike" / "1h30min hike" / "1h 30min hike" — hours + minutes combo
   let m = stripped.match(new RegExp(`^(\\d+)\\s*(?:h|hr|hrs|hour|hours)\\s*(\\d+)\\s*(?:min|mins|minute|minutes)?\\s+${ACTIVITY}\\b`, 'i'));
@@ -209,6 +209,7 @@ function makeActivityEvent(rawActivity, mins, originalBody) {
   if (activity === 'swimming') activity = 'swim';
   if (activity === 'stretching') activity = 'stretch';
   if (/^spinning(\s+class)?$/.test(activity) || activity === 'spin') activity = 'spinning class';
+  if (/^beach\s*bats$/.test(activity) || activity === 'matkot' || /^paddle\s*ball$/.test(activity)) activity = 'beach bats';
 
   return {
     reply: `logged ✓ ${activity} ${formatDuration(mins)}`,

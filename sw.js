@@ -1,4 +1,4 @@
-const CACHE = 'liftlog-v26';
+const CACHE = 'liftlog-v27';
 const ASSETS = [
   './',
   './index.html',
