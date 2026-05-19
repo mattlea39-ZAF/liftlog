@@ -1009,6 +1009,76 @@
     width: 100%;
   }
 
+  /* WhatsApp sync card at the bottom of the monthly log */
+  .log-whatsapp {
+    margin: 0 auto 32px;
+    max-width: 600px;
+    width: calc(100% - 32px);
+    padding: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .log-whatsapp-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .log-whatsapp-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--text);
+    font-weight: 600;
+  }
+  .log-whatsapp-status {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+  }
+  .log-whatsapp-status.connected { color: var(--accent); }
+  .log-whatsapp-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .log-whatsapp-input {
+    flex: 1;
+    min-width: 0;
+    padding: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    outline: none;
+  }
+  .log-whatsapp-input:focus { border-color: var(--accent); }
+  .log-whatsapp-save {
+    padding: 12px 16px;
+    background: var(--accent);
+    color: var(--bg);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+  }
+  .log-whatsapp-save:active { transform: scale(0.97); }
+  .log-whatsapp-hint {
+    margin-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .log-whatsapp-hint strong { color: var(--text); }
+
   .log-stat-row {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
@@ -1738,7 +1808,6 @@
     <h3>SETTINGS</h3>
     <input type="text" class="modal-input" id="settingsFreq" placeholder="Frequency (e.g. 2x a week)">
     <select class="modal-select" id="settingsSession"></select>
-    <input type="tel" inputmode="tel" class="modal-input" id="settingsWhatsApp" placeholder="WhatsApp number (e.g. +27821234567)">
     <div class="modal-buttons">
       <button class="modal-btn" onclick="exportData()">EXPORT</button>
       <button class="modal-btn" onclick="closeModal('settingsModal')">CLOSE</button>
@@ -1879,6 +1948,18 @@
   </div>
 
   <div class="log-content" id="logContent"></div>
+
+  <div class="log-whatsapp" id="logWhatsApp">
+    <div class="log-whatsapp-head">
+      <span class="log-whatsapp-title">WHATSAPP SYNC</span>
+      <span class="log-whatsapp-status" id="waStatus">—</span>
+    </div>
+    <div class="log-whatsapp-row">
+      <input type="tel" inputmode="tel" class="log-whatsapp-input" id="waNumber" placeholder="+27821234567">
+      <button type="button" class="log-whatsapp-save" id="waSaveBtn" onclick="saveWhatsAppNumber()">SAVE</button>
+    </div>
+    <div class="log-whatsapp-hint">Message <strong>+1 415 523 8886</strong> on WhatsApp (e.g. "1h hike") to log activities on your calendar.</div>
+  </div>
 </div>
 
 <script>
@@ -3331,7 +3412,6 @@
 
   function openSettingsModal() {
     document.getElementById('settingsFreq').value = state.meta.frequency;
-    document.getElementById('settingsWhatsApp').value = state.meta.whatsappNumber || '';
     // Populate the session dropdown dynamically from the active workout type.
     const sel = document.getElementById('settingsSession');
     sel.innerHTML = '';
@@ -3350,7 +3430,6 @@
 
   function saveSettings() {
     state.meta.frequency = document.getElementById('settingsFreq').value || '2x a week';
-    state.meta.whatsappNumber = normalizeWhatsAppNumber(document.getElementById('settingsWhatsApp').value);
     const raw = parseInt(document.getElementById('settingsSession').value);
     const wt = currentWorkoutType();
     const ids = sessionIdsForCurrentType();
@@ -3363,8 +3442,6 @@
     saveState();
     render();
     closeModal('settingsModal');
-    // Kick off a fresh sync now that the number is set/changed.
-    syncActivityLog();
   }
 
   function normalizeWhatsAppNumber(s) {
@@ -3812,11 +3889,40 @@
   // ---------- Monthly Log ----------
   function openLogPage() {
     currentLogMonth = monthKey(new Date());
-    // Default the filter to the currently active workout type so the user sees
-    // the most relevant view first; chips let them switch to 'all' or others.
-    currentLogProgramFilter = state.meta && state.meta.workoutType ? state.meta.workoutType : 'all';
+    // Default the filter to ALL so users see everything (lift sessions + WhatsApp activities).
+    currentLogProgramFilter = 'all';
     document.getElementById('logPage').classList.add('active');
     renderLogPage();
+    renderWhatsAppStatus();
+  }
+
+  function renderWhatsAppStatus() {
+    const num = (state.meta && state.meta.whatsappNumber) || '';
+    const input = document.getElementById('waNumber');
+    const status = document.getElementById('waStatus');
+    if (input) input.value = num;
+    if (status) {
+      if (num) {
+        status.textContent = 'CONNECTED';
+        status.classList.add('connected');
+      } else {
+        status.textContent = 'NOT CONNECTED';
+        status.classList.remove('connected');
+      }
+    }
+  }
+
+  function saveWhatsAppNumber() {
+    const input = document.getElementById('waNumber');
+    if (!input) return;
+    const cleaned = normalizeWhatsAppNumber(input.value);
+    state.meta = state.meta || {};
+    state.meta.whatsappNumber = cleaned;
+    saveState();
+    renderWhatsAppStatus();
+    if (navigator.vibrate) navigator.vibrate(10);
+    // Kick off a fresh sync immediately so any pre-existing logs land in the calendar.
+    syncActivityLog();
   }
 
   function setLogFilter(id) {
@@ -3895,16 +4001,20 @@
       });
     });
 
-    // Filter row: chips for each workout type + ALL chip.
-    const types = state.workoutTypes ? Object.values(state.workoutTypes) : [];
+    // Filter row: ALL first, then workout types (default workout type before others).
+    const types = state.workoutTypes ? Object.values(state.workoutTypes).filter(wt => wt && wt.id) : [];
+    types.sort((a, b) => {
+      if (a.id === DEFAULT_WORKOUT_TYPE_ID) return -1;
+      if (b.id === DEFAULT_WORKOUT_TYPE_ID) return 1;
+      return (a.name || '').localeCompare(b.name || '');
+    });
     let filterRow = `<div class="log-filter-row">`;
+    const allActive = currentLogProgramFilter === 'all' ? ' active' : '';
+    filterRow += `<button type="button" class="log-filter-chip${allActive}" onclick="setLogFilter('all')">ALL</button>`;
     types.forEach(wt => {
-      if (!wt || !wt.id) return;
       const activeCls = currentLogProgramFilter === wt.id ? ' active' : '';
       filterRow += `<button type="button" class="log-filter-chip${activeCls}" onclick="setLogFilter('${escapeHtml(wt.id)}')">${escapeHtml(wt.name || wt.id)}</button>`;
     });
-    const allActive = currentLogProgramFilter === 'all' ? ' active' : '';
-    filterRow += `<button type="button" class="log-filter-chip${allActive}" onclick="setLogFilter('all')">ALL</button>`;
     filterRow += `</div>`;
 
     let html = filterRow + `
