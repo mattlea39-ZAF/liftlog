@@ -4146,16 +4146,14 @@
     // --- Inline calendar grid (heatmap + tappable picker) ---
     const calendarHtml = renderInlineCalendar(currentLogMonth, loggedDates);
 
-    // --- Hero strip (sessions + streak + last) ---
+    // --- Hero strip (sessions + rest days + last) ---
     const totalSessions = liftEntries.length + actEntries.length;
-    const streak = computeStreak();
+    const balance = computeMonthBalance(currentLogMonth, liftEntries, actEntries);
     const last = mostRecentEvent(liftEntries, actEntries);
     let heroHtml = `<div class="log-hero">`;
     heroHtml += `<div class="log-hero-stats">`;
     heroHtml += `<div class="log-hero-stat"><div class="log-hero-value">${totalSessions}</div><div class="log-hero-label">${totalSessions === 1 ? 'SESSION' : 'SESSIONS'}</div></div>`;
-    if (streak > 0) {
-      heroHtml += `<div class="log-hero-stat"><div class="log-hero-value">🔥 ${streak}</div><div class="log-hero-label">${streak === 1 ? 'DAY STREAK' : 'DAY STREAK'}</div></div>`;
-    }
+    heroHtml += `<div class="log-hero-stat"><div class="log-hero-value">${balance.rest}</div><div class="log-hero-label">${balance.rest === 1 ? 'REST DAY' : 'REST DAYS'}</div></div>`;
     heroHtml += `</div>`;
     if (last) {
       heroHtml += `<div class="log-hero-last">LAST · ${escapeHtml(last.label)} · ${escapeHtml(last.dateStr)}</div>`;
@@ -4302,21 +4300,32 @@
     return html;
   }
 
-  // How many consecutive days, ending today, had at least one session/activity.
-  function computeStreak() {
-    let streak = 0;
-    for (let i = 0; i < 90; i++) {
-      const day = daysAgo(i);
-      const month = day.slice(0, 7);
-      const lifts = (state.log && state.log[month]) || [];
-      const acts = (state.activityLog && state.activityLog[month]) || [];
-      const hit =
-        (Array.isArray(lifts) && lifts.some(e => e && e.date === day)) ||
-        (Array.isArray(acts) && acts.some(e => e && e.date === day));
-      if (hit) streak++;
-      else break;
+  // For the displayed month, work out how many elapsed days had ANY logged
+  // activity and how many didn't (treating no-exercise days as rest days).
+  // Future days in the current month don't count as rest yet.
+  function computeMonthBalance(monthKey, liftEntries, actEntries) {
+    const activeDays = new Set();
+    (liftEntries || []).forEach(e => { if (e && e.date) activeDays.add(e.date); });
+    (actEntries || []).forEach(e => { if (e && e.date) activeDays.add(e.date); });
+
+    const today = todayKey();
+    const todayMonth = today.slice(0, 7);
+    const [yStr, mStr] = monthKey.split('-');
+    const y = parseInt(yStr, 10);
+    const m = parseInt(mStr, 10);
+
+    let elapsedDays;
+    if (monthKey === todayMonth) {
+      elapsedDays = parseInt(today.slice(8, 10), 10);  // day-of-month today
+    } else if (monthKey < todayMonth) {
+      elapsedDays = new Date(y, m, 0).getDate();      // full month length
+    } else {
+      elapsedDays = 0;                                  // future month
     }
-    return streak;
+    return {
+      active: activeDays.size,
+      rest: Math.max(0, elapsedDays - activeDays.size)
+    };
   }
 
   // Pick the most recent lift or activity across the month, return a label + date string.
