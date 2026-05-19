@@ -1021,6 +1021,73 @@
   .log-calendar .calendar-weekdays { margin-bottom: 4px; }
   .log-calendar .calendar-day { font-size: 13px; }
 
+  /* Day-detail card shown when a calendar cell is tapped */
+  .log-day-card {
+    max-width: 360px;
+    margin: -2px auto 12px;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    animation: dayFade 0.16s ease-out;
+  }
+  @keyframes dayFade {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .log-day-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .log-day-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .log-day-close {
+    background: transparent;
+    border: 0;
+    color: var(--text-dim);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .log-day-row {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 10px;
+    padding: 6px 0;
+    align-items: baseline;
+    border-top: 1px solid var(--border);
+  }
+  .log-day-row:first-of-type { border-top: 0; }
+  .log-day-emoji { font-size: 16px; line-height: 1; }
+  .log-day-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+  .log-day-meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  .log-day-empty {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-align: center;
+    padding: 8px 0;
+  }
+
   /* Hero strip — big numbers + streak + last-session */
   .log-hero {
     max-width: 600px;
@@ -1189,9 +1256,9 @@
   .progress-row-pct.down { color: var(--danger); }
   .progress-row-pct.flat { color: var(--text-dim); }
 
-  /* WhatsApp sync card at the bottom of the monthly log */
-  .log-whatsapp {
-    margin: 0 auto 32px;
+  /* Quick-log tile row */
+  .log-quicklog {
+    margin: 12px auto 24px;
     max-width: 600px;
     width: calc(100% - 32px);
     padding: 16px;
@@ -1199,65 +1266,229 @@
     border: 1px solid var(--border);
     border-radius: 12px;
   }
-  .log-whatsapp-head {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .log-whatsapp-title {
+  .log-quicklog-title {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     letter-spacing: 0.18em;
     color: var(--text);
     font-weight: 600;
+    margin-bottom: 10px;
   }
-  .log-whatsapp-status {
+  .log-quicklog-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+  }
+  .ql-tile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 4px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+  .ql-tile:active { transform: scale(0.96); background: var(--surface-2); }
+  .ql-tile .ql-emoji { font-size: 22px; line-height: 1; }
+  .ql-tile .ql-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+
+  /* Quick-log modal (centered) */
+  #quickLogModal { align-items: center; }
+  #quickLogModal .modal { border-radius: 16px; width: 340px; max-width: 92vw; padding: 20px; animation: calFade 0.18s ease-out; }
+  .ql-modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .ql-modal-emoji { font-size: 28px; line-height: 1; }
+  .ql-modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 24px;
+    letter-spacing: 0.04em;
+    color: var(--text);
+  }
+  .ql-section-label {
     font-family: 'JetBrains Mono', monospace;
     font-size: 10px;
+    letter-spacing: 0.18em;
     color: var(--text-dim);
-    letter-spacing: 0.1em;
+    margin-bottom: 8px;
   }
-  .log-whatsapp-status.connected { color: var(--accent); }
-  .log-whatsapp-row {
+  .ql-durations, .ql-dates {
     display: flex;
-    gap: 8px;
-    align-items: stretch;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
   }
-  .log-whatsapp-input {
-    flex: 1;
-    min-width: 0;
-    padding: 12px;
+  .ql-dur, .ql-date {
+    flex: 1 1 calc(33% - 6px);
+    min-width: 70px;
+    padding: 10px 6px;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text);
     font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+  }
+  .ql-dur.selected, .ql-date.selected {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+  .ql-date-input {
+    width: 100%;
+    padding: 10px;
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
+    margin-bottom: 12px;
     outline: none;
   }
-  .log-whatsapp-input:focus { border-color: var(--accent); }
-  .log-whatsapp-save {
-    padding: 12px 16px;
+
+  /* WhatsApp open-button at the bottom of the monthly log */
+  .log-whatsapp-btn {
+    display: grid;
+    grid-template-columns: 28px 1fr 20px;
+    gap: 10px;
+    align-items: center;
+    width: calc(100% - 32px);
+    max-width: 600px;
+    margin: 0 auto 32px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .log-whatsapp-btn:active { background: var(--surface-2); }
+  .log-whatsapp-btn.connected { border-color: var(--accent); }
+  .wa-btn-emoji { font-size: 20px; line-height: 1; }
+  .wa-btn-text { font-weight: 600; }
+  .wa-btn-chevron { color: var(--text-dim); font-size: 18px; text-align: right; }
+
+  /* WhatsApp sub-page */
+  .wa-section {
+    max-width: 600px;
+    margin: 0 auto 28px;
+    padding: 0 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .wa-section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .wa-number-row { margin-bottom: 8px; }
+  .wa-input {
+    width: 100%;
+    padding: 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    box-sizing: border-box;
+  }
+  .wa-input:focus { border-color: var(--accent); }
+  .wa-save-btn {
+    width: 100%;
+    padding: 14px;
     background: var(--accent);
     color: var(--bg);
     border: 1px solid var(--accent);
-    border-radius: 8px;
+    border-radius: 10px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     cursor: pointer;
   }
-  .log-whatsapp-save:active { transform: scale(0.97); }
-  .log-whatsapp-hint {
+  .wa-save-btn:active { transform: scale(0.99); }
+  .wa-save-btn:disabled { opacity: 0.5; cursor: default; }
+  .wa-status-line {
     margin-top: 10px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
     color: var(--text-dim);
-    line-height: 1.5;
+    text-align: center;
   }
-  .log-whatsapp-hint strong { color: var(--text); }
+  .wa-status-line.connected { color: var(--accent); }
+  .wa-status-line.error { color: var(--danger); }
+
+  .wa-step {
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-dim);
+  }
+  .wa-step:first-of-type { border-top: 0; }
+  .wa-step strong, .wa-step code { color: var(--text); font-weight: 600; }
+  .wa-step code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .wa-step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .wa-trig {
+    padding: 10px 0;
+    border-top: 1px solid var(--border);
+  }
+  .wa-trig:first-of-type { border-top: 0; }
+  .wa-trig-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .wa-trig-emoji { font-size: 16px; line-height: 1; }
+  .wa-trig-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--text);
+    font-weight: 700;
+  }
+  .wa-trig-examples {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    padding-left: 22px;
+  }
+  .wa-trig-backdate { background: rgba(212, 255, 0, 0.04); border-radius: 8px; padding: 10px 12px; border-top: 0; margin-top: 8px; }
 
   .log-stat-row {
     display: grid;
@@ -2064,6 +2295,38 @@
   </div>
 </div>
 
+<!-- Quick-log activity modal -->
+<div class="modal-backdrop" id="quickLogModal">
+  <div class="modal">
+    <div class="ql-modal-head">
+      <span class="ql-modal-emoji" id="qlEmoji">·</span>
+      <span class="ql-modal-title" id="qlTitle">LOG</span>
+    </div>
+    <div class="ql-section-label">DURATION</div>
+    <div class="ql-durations" id="qlDurations">
+      <button type="button" class="ql-dur" data-min="15">15min</button>
+      <button type="button" class="ql-dur" data-min="30">30min</button>
+      <button type="button" class="ql-dur" data-min="45">45min</button>
+      <button type="button" class="ql-dur" data-min="60">1h</button>
+      <button type="button" class="ql-dur" data-min="90">1h30</button>
+      <button type="button" class="ql-dur" data-min="120">2h</button>
+      <button type="button" class="ql-dur" data-min="180">3h</button>
+    </div>
+    <div class="ql-section-label">DATE</div>
+    <div class="ql-dates" id="qlDates">
+      <button type="button" class="ql-date" data-offset="0">TODAY</button>
+      <button type="button" class="ql-date" data-offset="1">YESTERDAY</button>
+      <button type="button" class="ql-date" data-offset="2">2 DAYS AGO</button>
+      <button type="button" class="ql-date" data-offset="custom">PICK…</button>
+    </div>
+    <input type="date" class="ql-date-input" id="qlDateInput" style="display:none">
+    <div class="modal-buttons" style="margin-top:14px;">
+      <button class="modal-btn" onclick="closeModal('quickLogModal')">CANCEL</button>
+      <button class="modal-btn primary" id="qlSaveBtn" onclick="quickLogSave()" disabled>LOG</button>
+    </div>
+  </div>
+</div>
+
 <!-- Workout Type Picker Modal -->
 <div class="modal-backdrop" id="workoutTypeModal">
   <div class="modal">
@@ -2109,16 +2372,108 @@
 
   <div class="log-content" id="logContent"></div>
 
-  <div class="log-whatsapp" id="logWhatsApp">
-    <div class="log-whatsapp-head">
-      <span class="log-whatsapp-title">WHATSAPP SYNC</span>
-      <span class="log-whatsapp-status" id="waStatus">—</span>
+  <div class="log-quicklog">
+    <div class="log-quicklog-title">LOG ACTIVITY</div>
+    <div class="log-quicklog-grid">
+      <button type="button" class="ql-tile" onclick="openQuickLog('swim')"><span class="ql-emoji">🌊</span><span class="ql-label">SWIM</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('cycle')"><span class="ql-emoji">🚴</span><span class="ql-label">CYCLE</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('hike')"><span class="ql-emoji">🥾</span><span class="ql-label">HIKE</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('spinning class')"><span class="ql-emoji">🌀</span><span class="ql-label">SPIN</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('yoga')"><span class="ql-emoji">🧘</span><span class="ql-label">YOGA</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('run')"><span class="ql-emoji">🏃</span><span class="ql-label">RUN</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('walk')"><span class="ql-emoji">🚶</span><span class="ql-label">WALK</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('stretch')"><span class="ql-emoji">🤸</span><span class="ql-label">STRETCH</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('beach bats')"><span class="ql-emoji">🏖️</span><span class="ql-label">BATS</span></button>
+      <button type="button" class="ql-tile" onclick="openQuickLog('bio')"><span class="ql-emoji">💪</span><span class="ql-label">BIO</span></button>
     </div>
-    <div class="log-whatsapp-row">
-      <input type="tel" inputmode="tel" class="log-whatsapp-input" id="waNumber" placeholder="+27821234567">
-      <button type="button" class="log-whatsapp-save" id="waSaveBtn" onclick="saveWhatsAppNumber()">SAVE</button>
+  </div>
+
+  <button type="button" class="log-whatsapp-btn" id="waOpenBtn" onclick="openWhatsAppPage()">
+    <span class="wa-btn-emoji">💬</span>
+    <span class="wa-btn-text" id="waBtnText">+ ADD WHATSAPP NUMBER</span>
+    <span class="wa-btn-chevron">›</span>
+  </button>
+</div>
+
+<!-- WhatsApp sub-page (full-screen overlay) -->
+<div class="log-page" id="whatsappPage">
+  <div class="log-header">
+    <button class="log-back" onclick="closeWhatsAppPage()" aria-label="Back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M15 18l-6-6 6-6"/>
+      </svg>
+    </button>
+    <div class="log-title">WHATSAPP LOGGING</div>
+    <div style="width:36px"></div>
+  </div>
+
+  <div class="log-content">
+    <div class="wa-section">
+      <div class="wa-section-title">YOUR WHATSAPP NUMBER</div>
+      <div class="wa-number-row">
+        <input type="tel" inputmode="tel" class="wa-input" id="waPageNumber" placeholder="+27821234567">
+      </div>
+      <button type="button" class="wa-save-btn" id="waPageSaveBtn" onclick="saveWhatsAppFromPage()">SAVE & SEND WELCOME</button>
+      <div class="wa-status-line" id="waPageStatus">NOT CONNECTED</div>
     </div>
-    <div class="log-whatsapp-hint">Message <strong>+1 415 523 8886</strong> on WhatsApp (e.g. "1h hike") to log activities on your calendar.</div>
+
+    <div class="wa-section">
+      <div class="wa-section-title">SETUP</div>
+      <div class="wa-step">
+        <div class="wa-step-num">1</div>
+        <div>From WhatsApp, message <strong>+1 415 523 8886</strong> with <code>join eleven-say</code> (one-time per device — Twilio sandbox).</div>
+      </div>
+      <div class="wa-step">
+        <div class="wa-step-num">2</div>
+        <div>Save your number above. We'll send you a welcome message with all trigger phrases.</div>
+      </div>
+      <div class="wa-step">
+        <div class="wa-step-num">3</div>
+        <div>Message the sandbox any time to log activities. They appear as blue dots on your calendar.</div>
+      </div>
+    </div>
+
+    <div class="wa-section">
+      <div class="wa-section-title">TRIGGER PHRASES</div>
+
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">🌊</span><span class="wa-trig-name">SWIM</span></div>
+        <div class="wa-trig-examples">"1h swim" · "40min swim" · "did a 1h swim"</div>
+      </div>
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">🚴</span><span class="wa-trig-name">CYCLE</span></div>
+        <div class="wa-trig-examples">"2h cycle" · "30min cycle" · "1h cycle"</div>
+      </div>
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">🥾</span><span class="wa-trig-name">HIKE</span></div>
+        <div class="wa-trig-examples">"1h hike" · "2h hike" · "3h hike"</div>
+      </div>
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">🌀</span><span class="wa-trig-name">SPINNING</span></div>
+        <div class="wa-trig-examples">"1h spinning" · "1h spinning class"</div>
+      </div>
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">🏖️</span><span class="wa-trig-name">BEACH BATS</span></div>
+        <div class="wa-trig-examples">"1h beach bats" · "30min beach bats" · "matkot"</div>
+      </div>
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">🏃</span><span class="wa-trig-name">RUN</span> · <span class="wa-trig-emoji">🚶</span><span class="wa-trig-name">WALK</span></div>
+        <div class="wa-trig-examples">"30min run" · "1h walk"</div>
+      </div>
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">🧘</span><span class="wa-trig-name">YOGA</span> · <span class="wa-trig-emoji">🤸</span><span class="wa-trig-name">STRETCH</span></div>
+        <div class="wa-trig-examples">"45min yoga" · "20min stretch"</div>
+      </div>
+      <div class="wa-trig">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">💪</span><span class="wa-trig-name">BIO</span></div>
+        <div class="wa-trig-examples">"legs bio session done" → lower body bio<br>"chest bio session" → upper body bio<br>"bio session done"</div>
+      </div>
+
+      <div class="wa-trig wa-trig-backdate">
+        <div class="wa-trig-head"><span class="wa-trig-emoji">📅</span><span class="wa-trig-name">BACKDATE</span></div>
+        <div class="wa-trig-examples">Start with a date: "yesterday 1h swim" · "monday 30min cycle" · "15 may 1h hike"</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2942,7 +3297,6 @@
     const startDayOfWeek = firstDay.getDay();
 
     const today = todayKey();
-    const activeKey = activeDateKey();
     const minKey = daysAgo(90);
 
     let cells = '';
@@ -2956,7 +3310,7 @@
         'calendar-day',
         loggedDates.has(dateKey) ? 'logged' : '',
         dateKey === today ? 'today' : '',
-        dateKey === activeKey ? 'active' : '',
+        dateKey === logSelectedDate ? 'active' : '',
         disabled ? 'disabled' : ''
       ].filter(Boolean).join(' ');
       const click = disabled ? '' : ` onclick="pickLogDay('${dateKey}')"`;
@@ -2971,9 +3325,53 @@
     `;
   }
 
+  // Render an inline card listing everything logged on `dateKey` — lifts and
+  // WhatsApp/in-app activities. Used when the user taps a calendar cell.
+  function renderDayDetail(dateKey) {
+    if (!dateKey) return '';
+    const month = dateKey.slice(0, 7);
+    const lifts = (state.log && state.log[month] || []).filter(e => e && e.date === dateKey);
+    const acts  = (state.activityLog && state.activityLog[month] || []).filter(e => e && e.date === dateKey);
+
+    const d = new Date(dateKey + 'T00:00:00');
+    const heading = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+
+    let body = '';
+    if (lifts.length === 0 && acts.length === 0) {
+      body = `<div class="log-day-empty">REST DAY · NOTHING LOGGED</div>`;
+    } else {
+      lifts.forEach(e => {
+        const session = sessionNameFor(e.workoutType, e.sessionId);
+        const wtName = workoutTypeName(e.workoutType);
+        body += `<div class="log-day-row"><span class="log-day-emoji">🏋️</span><span class="log-day-label">${escapeHtml(session)}</span><span class="log-day-meta">${escapeHtml(wtName)}</span></div>`;
+      });
+      acts.forEach(e => {
+        const bucket = (e && e.type === 'bio') ? 'bio' : bucketForActivity(e && e.activity);
+        const meta = ACTIVITY_META[bucket] || { emoji: '·', label: bucket.toUpperCase() };
+        const dur = e.durationMin ? formatActivityDuration(e.durationMin) : '';
+        const label = e.activity ? String(e.activity).toUpperCase() : meta.label;
+        body += `<div class="log-day-row"><span class="log-day-emoji">${meta.emoji}</span><span class="log-day-label">${escapeHtml(label)}</span><span class="log-day-meta">${escapeHtml(dur)}</span></div>`;
+      });
+    }
+
+    return `
+      <div class="log-day-card">
+        <div class="log-day-head">
+          <span class="log-day-date">${escapeHtml(heading)}</span>
+          <button type="button" class="log-day-close" onclick="pickLogDay('${dateKey}')" aria-label="Close">×</button>
+        </div>
+        ${body}
+      </div>
+    `;
+  }
+
+  // Tap a calendar day inside the Monthly Log → show what was logged on
+  // that date in a detail card below the calendar. Doesn't navigate or
+  // change the active date.
+  let logSelectedDate = null;
   function pickLogDay(dateKey) {
-    closeLogPage();
-    requestActiveDateChange(dateKey);
+    logSelectedDate = (logSelectedDate === dateKey) ? null : dateKey;
+    renderLogPage();
   }
 
   function resetActiveDateToToday() {
@@ -4022,6 +4420,7 @@
     currentLogMonth = monthKey(new Date());
     // Default the filter to ALL so users see everything (lift sessions + WhatsApp activities).
     currentLogProgramFilter = 'all';
+    logSelectedDate = null;
     document.getElementById('logPage').classList.add('active');
     renderLogPage();
     renderWhatsAppStatus();
@@ -4029,31 +4428,179 @@
 
   function renderWhatsAppStatus() {
     const num = (state.meta && state.meta.whatsappNumber) || '';
-    const input = document.getElementById('waNumber');
-    const status = document.getElementById('waStatus');
-    if (input) input.value = num;
-    if (status) {
+    const btn = document.getElementById('waOpenBtn');
+    const text = document.getElementById('waBtnText');
+    if (btn && text) {
       if (num) {
-        status.textContent = 'CONNECTED';
-        status.classList.add('connected');
+        text.textContent = `WHATSAPP · ${num}`;
+        btn.classList.add('connected');
       } else {
-        status.textContent = 'NOT CONNECTED';
-        status.classList.remove('connected');
+        text.textContent = '+ ADD WHATSAPP NUMBER';
+        btn.classList.remove('connected');
       }
     }
   }
 
-  function saveWhatsAppNumber() {
-    const input = document.getElementById('waNumber');
+  function openWhatsAppPage() {
+    const num = (state.meta && state.meta.whatsappNumber) || '';
+    const input = document.getElementById('waPageNumber');
+    if (input) input.value = num;
+    setWaPageStatus(num ? 'CONNECTED' : 'NOT CONNECTED', num ? 'connected' : '');
+    document.getElementById('whatsappPage').classList.add('active');
+  }
+
+  function closeWhatsAppPage() {
+    document.getElementById('whatsappPage').classList.remove('active');
+  }
+
+  function setWaPageStatus(text, cls) {
+    const el = document.getElementById('waPageStatus');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.remove('connected', 'error');
+    if (cls) el.classList.add(cls);
+  }
+
+  async function saveWhatsAppFromPage() {
+    const input = document.getElementById('waPageNumber');
+    const saveBtn = document.getElementById('waPageSaveBtn');
     if (!input) return;
     const cleaned = normalizeWhatsAppNumber(input.value);
+    if (!/^\+\d{6,20}$/.test(cleaned)) {
+      setWaPageStatus('NUMBER LOOKS INVALID', 'error');
+      return;
+    }
+
     state.meta = state.meta || {};
     state.meta.whatsappNumber = cleaned;
     saveState();
     renderWhatsAppStatus();
     if (navigator.vibrate) navigator.vibrate(10);
-    // Kick off a fresh sync immediately so any pre-existing logs land in the calendar.
+
+    saveBtn.disabled = true;
+    setWaPageStatus('SAVING…', '');
+
+    // Send welcome message via Worker
+    try {
+      const res = await fetch(`${WHATSAPP_WORKER_URL}/welcome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: 'whatsapp:' + cleaned })
+      });
+      if (!res.ok) throw new Error('worker ' + res.status);
+      setWaPageStatus('CONNECTED · WELCOME MESSAGE SENT', 'connected');
+    } catch (err) {
+      setWaPageStatus('CONNECTED · WELCOME FAILED (CHECK SANDBOX JOIN)', 'error');
+    } finally {
+      saveBtn.disabled = false;
+    }
+
+    // Sync any existing events for this number
     syncActivityLog();
+  }
+
+  // ---------- Quick-log activity ----------
+  let qlState = { activity: null, durationMin: null, dateKey: null };
+
+  function openQuickLog(activity) {
+    qlState = { activity, durationMin: null, dateKey: todayKey() };
+    const isBio = activity === 'bio';
+    const meta = ACTIVITY_META[activity] || ACTIVITY_META[bucketForActivity(activity)] || { emoji: '·', label: activity.toUpperCase() };
+    document.getElementById('qlEmoji').textContent = meta.emoji;
+    document.getElementById('qlTitle').textContent = `LOG ${meta.label}`;
+
+    // Bio sessions have no duration — hide the duration row and auto-enable save once a date is picked.
+    const durRow = document.getElementById('qlDurations');
+    const durLabel = durRow.previousElementSibling;
+    durRow.style.display = isBio ? 'none' : '';
+    if (durLabel) durLabel.style.display = isBio ? 'none' : '';
+    if (isBio) qlState.durationMin = 0;
+
+    // Reset selection visuals
+    document.querySelectorAll('#qlDurations .ql-dur').forEach(b => b.classList.remove('selected'));
+    document.querySelectorAll('#qlDates .ql-date').forEach((b, i) => b.classList.toggle('selected', b.dataset.offset === '0'));
+    const dateInput = document.getElementById('qlDateInput');
+    dateInput.style.display = 'none';
+    dateInput.value = todayKey();
+    dateInput.min = daysAgo(365);
+    dateInput.max = todayKey();
+
+    refreshQuickLogSave();
+    document.getElementById('quickLogModal').classList.add('active');
+
+    // Wire duration buttons (idempotent — clears old handlers via cloneNode pattern not needed; using onclick directly)
+    document.querySelectorAll('#qlDurations .ql-dur').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('#qlDurations .ql-dur').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        qlState.durationMin = parseInt(btn.dataset.min, 10);
+        refreshQuickLogSave();
+      };
+    });
+    document.querySelectorAll('#qlDates .ql-date').forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll('#qlDates .ql-date').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        if (btn.dataset.offset === 'custom') {
+          dateInput.style.display = 'block';
+          dateInput.focus();
+          qlState.dateKey = dateInput.value || todayKey();
+        } else {
+          dateInput.style.display = 'none';
+          qlState.dateKey = daysAgo(parseInt(btn.dataset.offset, 10));
+        }
+        refreshQuickLogSave();
+      };
+    });
+    dateInput.onchange = () => {
+      const v = dateInput.value;
+      if (!v) return;
+      if (v < daysAgo(365) || v > todayKey()) return;
+      qlState.dateKey = v;
+      refreshQuickLogSave();
+    };
+  }
+
+  function refreshQuickLogSave() {
+    const ok = !!qlState.activity && qlState.durationMin !== null && !!qlState.dateKey;
+    document.getElementById('qlSaveBtn').disabled = !ok;
+  }
+
+  async function quickLogSave() {
+    if (qlState.durationMin === null || !qlState.activity || !qlState.dateKey) return;
+    const isBio = qlState.activity === 'bio';
+    const id = 'local-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const event = isBio
+      ? { type: 'bio', activity: 'bio session', bodyPart: null, durationMin: null, raw: '(in-app)', date: qlState.dateKey, id }
+      : { type: 'activity', activity: qlState.activity, durationMin: qlState.durationMin, raw: '(in-app)', date: qlState.dateKey, id };
+
+    // Local merge
+    if (!state.activityLog) state.activityLog = {};
+    const month = qlState.dateKey.slice(0, 7);
+    if (!state.activityLog[month]) state.activityLog[month] = [];
+    state.activityLog[month].push(event);
+    saveState();
+    closeModal('quickLogModal');
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+    renderLogPage();
+
+    // Push to Worker if WhatsApp is connected (so the same event appears on other devices)
+    const num = state.meta && state.meta.whatsappNumber;
+    if (num) {
+      try {
+        await fetch(`${WHATSAPP_WORKER_URL}/events`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            from: 'whatsapp:' + num,
+            type: event.type,
+            activity: event.activity,
+            durationMin: event.durationMin,
+            date: event.date
+          })
+        });
+      } catch (_) { /* offline → next sync picks it up via syncActivityLog when reconciled */ }
+    }
   }
 
   function setLogFilter(id) {
@@ -4070,6 +4617,7 @@
     const [y, m] = currentLogMonth.split('-').map(Number);
     const d = new Date(y, m - 1 + direction, 1);
     currentLogMonth = monthKey(d);
+    logSelectedDate = null;
     renderLogPage();
   }
   
@@ -4144,7 +4692,10 @@
     filterRow += `</div>`;
 
     // --- Inline calendar grid (heatmap + tappable picker) ---
+    // If a previously-selected day isn't in the current month, drop it.
+    if (logSelectedDate && logSelectedDate.slice(0, 7) !== currentLogMonth) logSelectedDate = null;
     const calendarHtml = renderInlineCalendar(currentLogMonth, loggedDates);
+    const dayDetailHtml = renderDayDetail(logSelectedDate);
 
     // --- Hero strip (sessions + rest days + last) ---
     const totalSessions = liftEntries.length + actEntries.length;
@@ -4170,7 +4721,7 @@
       bodyHtml = renderWorkoutProgressBlock(liftEntries);
     }
 
-    content.innerHTML = filterRow + calendarHtml + heroHtml + bodyHtml;
+    content.innerHTML = filterRow + calendarHtml + dayDetailHtml + heroHtml + bodyHtml;
   }
 
   // Build a flat count of activity buckets across lifts + WhatsApp activities.
