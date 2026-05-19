@@ -1738,6 +1738,7 @@
     <h3>SETTINGS</h3>
     <input type="text" class="modal-input" id="settingsFreq" placeholder="Frequency (e.g. 2x a week)">
     <select class="modal-select" id="settingsSession"></select>
+    <input type="tel" inputmode="tel" class="modal-input" id="settingsWhatsApp" placeholder="WhatsApp number (e.g. +27821234567)">
     <div class="modal-buttons">
       <button class="modal-btn" onclick="exportData()">EXPORT</button>
       <button class="modal-btn" onclick="closeModal('settingsModal')">CLOSE</button>
@@ -2283,6 +2284,7 @@
     // Safety: ensure the default workout type exists with all 3 sessions
     if (!s.workoutTypes) s.workoutTypes = {};
     if (!s.log) s.log = {};
+    if (!s.activityLog) s.activityLog = {};  // WhatsApp-logged activities (additive)
     if (!s.meta) s.meta = {};
     if (!s.meta.workoutType || !s.workoutTypes[s.meta.workoutType]) {
       s.meta.workoutType = DEFAULT_WORKOUT_TYPE_ID;
@@ -2320,10 +2322,47 @@
         schemaVersion: 6,
         meta: state.meta,
         workoutTypes: state.workoutTypes,
-        log: state.log
+        log: state.log,
+        activityLog: state.activityLog || {}
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     } catch (e) {}
+  }
+
+  // ---------- WhatsApp activity sync ----------
+  // Pulls activities the user logged via WhatsApp from the Worker and merges
+  // them into state.activityLog. The calendar picker reads from this on top
+  // of state.log so WhatsApp-logged days show blue too.
+  const WHATSAPP_WORKER_URL = 'https://liftlog.mattlea39.workers.dev';
+
+  async function syncActivityLog() {
+    const num = state.meta && state.meta.whatsappNumber;
+    if (!num) return;
+    const from = 'whatsapp:' + num;
+    try {
+      const res = await fetch(`${WHATSAPP_WORKER_URL}/events?from=${encodeURIComponent(from)}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const events = Array.isArray(data && data.events) ? data.events : [];
+      if (!state.activityLog) state.activityLog = {};
+      let added = 0;
+      for (const e of events) {
+        if (!e || !e.date || !e.id) continue;
+        const month = String(e.date).slice(0, 7);
+        if (!/^\d{4}-\d{2}$/.test(month)) continue;
+        if (!state.activityLog[month]) state.activityLog[month] = [];
+        if (!state.activityLog[month].some(x => x.id === e.id)) {
+          state.activityLog[month].push(e);
+          added++;
+        }
+      }
+      if (added > 0) {
+        saveState();
+        render();
+      }
+    } catch (err) {
+      // Silent — offline, CORS, etc. Try again on next open.
+    }
   }
 
   function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -2676,10 +2715,13 @@
     const daysInMonth = lastDay.getDate();
     const startDayOfWeek = firstDay.getDay();
 
-    // Logged dates this month across ALL workout types (one blue color, scope = any program)
+    // Logged dates this month across ALL workout types + WhatsApp-logged activities.
+    // Any session or activity on a day colors it blue.
     const loggedDates = new Set();
     const entries = state.log[calendarMonth];
     if (Array.isArray(entries)) entries.forEach(e => { if (e && e.date) loggedDates.add(e.date); });
+    const activities = state.activityLog && state.activityLog[calendarMonth];
+    if (Array.isArray(activities)) activities.forEach(e => { if (e && e.date) loggedDates.add(e.date); });
 
     document.getElementById('calendarMonthLabel').textContent = formatMonthLabel(calendarMonth);
 
@@ -3289,6 +3331,7 @@
 
   function openSettingsModal() {
     document.getElementById('settingsFreq').value = state.meta.frequency;
+    document.getElementById('settingsWhatsApp').value = state.meta.whatsappNumber || '';
     // Populate the session dropdown dynamically from the active workout type.
     const sel = document.getElementById('settingsSession');
     sel.innerHTML = '';
@@ -3307,6 +3350,7 @@
 
   function saveSettings() {
     state.meta.frequency = document.getElementById('settingsFreq').value || '2x a week';
+    state.meta.whatsappNumber = normalizeWhatsAppNumber(document.getElementById('settingsWhatsApp').value);
     const raw = parseInt(document.getElementById('settingsSession').value);
     const wt = currentWorkoutType();
     const ids = sessionIdsForCurrentType();
@@ -3319,6 +3363,16 @@
     saveState();
     render();
     closeModal('settingsModal');
+    // Kick off a fresh sync now that the number is set/changed.
+    syncActivityLog();
+  }
+
+  function normalizeWhatsAppNumber(s) {
+    if (!s) return '';
+    // Strip everything except digits and the leading +. Keep + if present at start.
+    let cleaned = String(s).trim().replace(/[^\d+]/g, '');
+    if (cleaned && !cleaned.startsWith('+')) cleaned = '+' + cleaned;
+    return cleaned;
   }
 
   function closeModal(id) {
@@ -4140,6 +4194,7 @@
   renderSessionTabs();
   render();
   showRecoveryBannerIfPending();
+  syncActivityLog();
 </script>
 
 <script>
