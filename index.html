@@ -44,6 +44,8 @@
     --text-faint: #545862;
     --signal: #c2f632;
     --grid: rgba(232, 230, 224, 0.04);
+    --ios-blue: #0a84ff;
+    --ios-bg: #f2f2f7;
   }
 
   html { scroll-behavior: smooth; }
@@ -558,6 +560,586 @@
     }
     .hero-cta-row { flex-direction: column; }
   }
+
+  /* ========== GUIDED INSTALL OVERLAY ========== */
+  .install-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 1000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: installFadeIn 0.3s ease-out;
+  }
+  .install-overlay.active { display: flex; }
+  @keyframes installFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .overlay-inner {
+    background: var(--bg-2);
+    border: 1px solid var(--line-bright);
+    max-width: 480px;
+    width: 100%;
+    max-height: 95vh;
+    overflow-y: auto;
+    position: relative;
+    animation: installSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes installSlideUp {
+    from { transform: translateY(40px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .overlay-inner::before {
+    content: '';
+    position: absolute;
+    top: -1px; left: -1px; right: -1px;
+    height: 4px;
+    background: var(--signal);
+    box-shadow: 0 0 12px var(--signal);
+  }
+
+  .overlay-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 36px;
+    height: 36px;
+    background: transparent;
+    border: 1px solid var(--line-bright);
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 5;
+    line-height: 1;
+    transition: all 0.15s;
+  }
+  .overlay-close:hover { background: var(--line); color: var(--signal); border-color: var(--signal); }
+
+  .overlay-header {
+    padding: 36px 32px 24px;
+    border-bottom: 1px solid var(--line);
+    text-align: center;
+  }
+  .overlay-step-counter {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--signal);
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .overlay-headline {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 28px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: -0.02em;
+  }
+
+  .step-progress {
+    display: flex;
+    gap: 4px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+  .progress-pip {
+    width: 28px;
+    height: 3px;
+    background: var(--line-bright);
+    transition: background 0.3s;
+  }
+  .progress-pip.active { background: var(--signal); }
+
+  .overlay-body {
+    padding: 32px;
+  }
+
+  .step-content { display: none; }
+  .step-content.active { display: block; animation: installFadeStep 0.4s ease-out; }
+  @keyframes installFadeStep {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* iPhone mockup */
+  .iphone-mock {
+    background: #1c1c1e;
+    border-radius: 36px;
+    padding: 8px;
+    max-width: 240px;
+    margin: 0 auto 24px;
+    position: relative;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 20px 40px rgba(0,0,0,0.5);
+  }
+  .iphone-screen {
+    background: var(--ios-bg);
+    border-radius: 30px;
+    overflow: hidden;
+    aspect-ratio: 9 / 19.5;
+    position: relative;
+  }
+  .iphone-notch {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 18px;
+    background: #1c1c1e;
+    border-radius: 12px;
+    z-index: 10;
+  }
+
+  /* Safari browser mockup */
+  .safari-mock {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    padding-top: 30px;
+    color: white;
+  }
+
+  .safari-page {
+    padding: 8px 12px 0;
+  }
+  .safari-page .mini-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #2a2e36;
+    margin-bottom: 10px;
+  }
+  .safari-page .ll-badge {
+    background: var(--signal);
+    color: #000;
+    padding: 1px 4px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 7px;
+    letter-spacing: 0.05em;
+  }
+  .safari-page .install-mini-btn {
+    background: var(--signal);
+    color: #000;
+    padding: 2px 5px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 5px;
+    letter-spacing: 0.1em;
+  }
+  .safari-page .mini-h {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 0.95;
+    text-transform: uppercase;
+    color: white;
+  }
+  .safari-page .mini-h .accent { color: var(--signal); }
+  .safari-page .mini-h .strike {
+    text-decoration: line-through;
+    text-decoration-color: var(--signal);
+    color: #545862;
+  }
+
+  .safari-toolbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(28, 28, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border-top: 0.5px solid rgba(255,255,255,0.1);
+    padding: 6px 8px 10px;
+  }
+  .safari-url-bar {
+    background: rgba(118, 118, 128, 0.24);
+    padding: 4px 6px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-family: -apple-system, sans-serif;
+    font-size: 8px;
+    color: white;
+    margin-bottom: 8px;
+  }
+  .safari-url-bar .aa {
+    font-size: 7px;
+    font-weight: 600;
+    padding: 1px 3px;
+  }
+  .safari-url-bar .url {
+    flex: 1;
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 7px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .safari-url-bar .refresh {
+    color: white;
+    font-size: 9px;
+  }
+
+  .safari-toolbar-icons {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 4px;
+  }
+  .safari-icon {
+    width: 18px;
+    height: 18px;
+    color: var(--ios-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .safari-icon svg { width: 100%; height: 100%; }
+  .safari-icon.dots {
+    color: var(--ios-blue);
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+
+  /* Highlight (pulsing ring) */
+  .target-ring {
+    position: absolute;
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--signal);
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    animation: installPulseRing 1.5s ease-out infinite;
+  }
+  .target-ring-solid {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 2px solid var(--signal);
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    box-shadow: 0 0 12px var(--signal);
+  }
+  @keyframes installPulseRing {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+  }
+
+  /* Bottom toolbar menu */
+  .toolbar-menu {
+    position: absolute;
+    bottom: 50px;
+    right: 8px;
+    background: rgba(60, 60, 67, 0.95);
+    backdrop-filter: blur(40px);
+    border-radius: 12px;
+    width: 130px;
+    padding: 4px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    animation: installMenuPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @keyframes installMenuPop {
+    from { transform: translateY(8px) scale(0.95); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+  .menu-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 8px;
+    font-family: -apple-system, sans-serif;
+    font-size: 9px;
+    color: white;
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
+  }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item.highlight {
+    background: var(--signal);
+    color: #000;
+    border-radius: 8px;
+    box-shadow: 0 0 0 3px var(--signal), 0 0 16px rgba(194, 246, 50, 0.5);
+    position: relative;
+    z-index: 3;
+  }
+  .menu-item .menu-icon {
+    width: 11px;
+    height: 11px;
+  }
+  .menu-item .menu-icon svg { width: 100%; height: 100%; }
+  .menu-pulse-ring {
+    position: absolute;
+    inset: -8px;
+    border: 2px solid var(--signal);
+    border-radius: 14px;
+    animation: installPulseBox 1.5s ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes installPulseBox {
+    0% { transform: scale(0.96); opacity: 1; }
+    100% { transform: scale(1.04); opacity: 0; }
+  }
+
+  /* Share sheet */
+  .share-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1c1c1e;
+    border-radius: 14px 14px 0 0;
+    padding: 8px 6px 14px;
+    max-height: 78%;
+    animation: installSheetUp 0.3s ease-out;
+  }
+  @keyframes installSheetUp {
+    from { transform: translateY(40%); }
+    to { transform: translateY(0); }
+  }
+  .share-sheet-handle {
+    width: 32px;
+    height: 3px;
+    background: rgba(255,255,255,0.3);
+    border-radius: 2px;
+    margin: 0 auto 8px;
+  }
+  .share-sheet-header {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 4px 6px;
+    margin-bottom: 8px;
+  }
+  .share-app-icon {
+    width: 24px;
+    height: 24px;
+    background: var(--bg);
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--signal);
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 9px;
+    flex-shrink: 0;
+  }
+  .share-app-meta {
+    flex: 1;
+    font-family: -apple-system, sans-serif;
+    color: white;
+    font-size: 7px;
+    line-height: 1.2;
+    overflow: hidden;
+  }
+  .share-app-meta .title {
+    font-weight: 600;
+    color: white;
+    margin-bottom: 1px;
+  }
+  .share-app-meta .domain {
+    color: rgba(255,255,255,0.5);
+    font-size: 6px;
+  }
+
+  .share-app-row {
+    display: flex;
+    gap: 6px;
+    padding: 0 4px 8px;
+    border-bottom: 0.5px solid rgba(255,255,255,0.1);
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+  .share-recent {
+    width: 32px;
+    height: 32px;
+    background: rgba(118, 118, 128, 0.3);
+    border-radius: 7px;
+    flex-shrink: 0;
+  }
+  .share-recent:nth-child(2) { background: linear-gradient(135deg, #007aff, #5ac8fa); }
+  .share-recent:nth-child(3) { background: linear-gradient(135deg, #34c759, #30b0c7); }
+  .share-recent:nth-child(4) { background: linear-gradient(135deg, #ff9500, #ffcc00); }
+
+  .share-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    color: white;
+    font-family: -apple-system, sans-serif;
+    font-size: 8.5px;
+    font-weight: 500;
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
+    position: relative;
+  }
+  .share-list-item.dim { color: rgba(255,255,255,0.5); font-size: 7px; padding: 5px 10px; }
+  .share-list-item.highlight {
+    background: var(--signal);
+    color: #000;
+    border-radius: 8px;
+    font-weight: 700;
+    box-shadow: 0 0 0 3px var(--signal), 0 0 18px rgba(194, 246, 50, 0.5);
+    border-bottom: none;
+    z-index: 3;
+    margin: 2px 0;
+  }
+  .share-list-item.highlight::before {
+    content: '';
+    position: absolute;
+    inset: -7px;
+    border: 2px solid var(--signal);
+    border-radius: 14px;
+    animation: installPulseBox 1.5s ease-out infinite;
+    pointer-events: none;
+  }
+  .share-list-icon {
+    width: 14px;
+    height: 14px;
+  }
+  .share-list-icon svg { width: 100%; height: 100%; }
+
+  /* Scroll indicator on step 3 */
+  .scroll-indicator {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    color: var(--signal);
+    animation: installScrollHint 1.4s ease-in-out infinite;
+    z-index: 5;
+    pointer-events: none;
+  }
+  @keyframes installScrollHint {
+    0%, 100% { transform: translateY(-30%); opacity: 1; }
+    50% { transform: translateY(30%); opacity: 0.4; }
+  }
+
+  /* Home screen */
+  .homescreen {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #2a3540, #1a2530);
+    padding: 38px 12px 50px;
+    position: relative;
+  }
+  .home-time {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: white;
+    font-family: -apple-system, sans-serif;
+    font-weight: 600;
+    font-size: 9px;
+    z-index: 5;
+  }
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .home-icon {
+    aspect-ratio: 1;
+    background: rgba(255,255,255,0.2);
+    border-radius: 11px;
+  }
+  .home-icon.lift-log {
+    background: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--signal);
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 14px;
+    box-shadow: 0 0 0 3px var(--signal), 0 0 20px var(--signal);
+    animation: installIconAppear 0.8s ease-out;
+    position: relative;
+    z-index: 2;
+  }
+  .home-icon.lift-log::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border: 2px solid var(--signal);
+    border-radius: 16px;
+    animation: installPulseBox 1.5s ease-out infinite;
+    pointer-events: none;
+  }
+  @keyframes installIconAppear {
+    from { transform: scale(0); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* Step body text */
+  .step-instruction {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .step-instruction .signal { color: var(--signal); }
+  .step-detail {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text-dim);
+    text-align: center;
+  }
+  .step-detail strong { color: var(--text); font-weight: 500; }
+
+  .overlay-footer {
+    padding: 20px 32px 32px;
+    display: flex;
+    gap: 10px;
+    border-top: 1px solid var(--line);
+  }
+  .overlay-btn {
+    flex: 1;
+    padding: 16px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border: 1px solid var(--line-bright);
+    background: var(--bg-2);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .overlay-btn:hover { border-color: var(--signal); color: var(--signal); }
+  .overlay-btn.primary {
+    background: var(--signal);
+    color: var(--bg);
+    border-color: var(--signal);
+  }
+  .overlay-btn.primary:hover {
+    background: transparent;
+    color: var(--signal);
+  }
+  .overlay-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 </style>
 </head>
 <body>
@@ -569,7 +1151,7 @@
         <span class="badge">LL</span>
         <span><strong>LIFT.LOG</strong></span>
       </div>
-      <a href="#install" class="install-btn">INSTALL ↓</a>
+      <a href="#" class="install-btn" onclick="openInstall(); return false;">INSTALL ↓</a>
     </div>
   </div>
 </div>
@@ -688,62 +1270,10 @@
   </div>
 </section>
 
-<section class="procedure" id="install">
-  <div class="container">
-    <div class="section-meta">
-      <span>§ 03 / GET IT ON YOUR PHONE</span>
-      <span>~60 SECONDS</span>
-    </div>
-    <h2 class="section-headline">THREE <span class="signal">TAPS.</span></h2>
-
-    <div class="proc-platform">
-      <div class="proc-platform-label">§ iPHONE / iPAD — SAFARI</div>
-      <div class="proc-table">
-        <div class="proc-row">
-          <div class="proc-num">01</div>
-          <div class="proc-title">OPEN IN SAFARI</div>
-          <div class="proc-desc">Hit the install link. The app loads as a webpage. No download yet.</div>
-        </div>
-        <div class="proc-row">
-          <div class="proc-num">02</div>
-          <div class="proc-title">SHARE → ADD TO HOME SCREEN</div>
-          <div class="proc-desc">Tap the Share button at the bottom. Scroll down. Tap "Add to Home Screen".</div>
-        </div>
-        <div class="proc-row">
-          <div class="proc-num">03</div>
-          <div class="proc-title">TRAIN</div>
-          <div class="proc-desc">App icon on your home screen. Opens fullscreen. Works offline. Done.</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="proc-platform">
-      <div class="proc-platform-label">§ ANDROID — CHROME</div>
-      <div class="proc-table">
-        <div class="proc-row">
-          <div class="proc-num">01</div>
-          <div class="proc-title">OPEN IN CHROME</div>
-          <div class="proc-desc">Hit the install link. The app loads as a webpage. No download yet.</div>
-        </div>
-        <div class="proc-row">
-          <div class="proc-num">02</div>
-          <div class="proc-title">MENU → INSTALL APP</div>
-          <div class="proc-desc">Tap the three-dot menu. Choose "Install app" or "Add to Home screen".</div>
-        </div>
-        <div class="proc-row">
-          <div class="proc-num">03</div>
-          <div class="proc-title">TRAIN</div>
-          <div class="proc-desc">App icon on your home screen. Opens fullscreen. Works offline. Done.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section class="final-cta">
   <div class="container">
     <h1 class="final-headline">PUT IT TO <span class="signal">WORK.</span></h1>
-    <a href="./app.html" class="final-button">INSTALL LIFT.LOG <span>→</span></a>
+    <a href="./app.html" class="final-button" onclick="openInstall(); return false;">INSTALL LIFT.LOG <span>→</span></a>
   </div>
 </section>
 
@@ -756,10 +1286,271 @@
   </div>
 </footer>
 
+<div class="install-overlay" id="installOverlay">
+  <div class="overlay-inner">
+    <button class="overlay-close" onclick="closeInstall()">×</button>
+
+    <div class="overlay-header">
+      <div class="overlay-step-counter" id="stepCounter">STEP 1 OF 4</div>
+      <h2 class="overlay-headline" id="overlayHeadline">INSTALL ON IPHONE</h2>
+      <div class="step-progress">
+        <div class="progress-pip active" id="pip1"></div>
+        <div class="progress-pip" id="pip2"></div>
+        <div class="progress-pip" id="pip3"></div>
+        <div class="progress-pip" id="pip4"></div>
+      </div>
+    </div>
+
+    <div class="overlay-body">
+
+      <!-- STEP 1: Tap the ··· button -->
+      <div class="step-content active" id="step1">
+        <div class="iphone-mock">
+          <div class="iphone-screen">
+            <div class="iphone-notch"></div>
+            <div class="safari-mock">
+              <div class="safari-page">
+                <div class="mini-top">
+                  <div style="display:flex; gap:4px; align-items:center;">
+                    <span class="ll-badge">LL</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:6px; letter-spacing:0.1em;">LIFT.LOG</span>
+                  </div>
+                  <span class="install-mini-btn">INSTALL ↓</span>
+                </div>
+                <div class="mini-h">
+                  NO <span class="strike">ACCOUNT</span><br>
+                  NO <span class="strike">ADS</span><br>
+                  JUST <span class="accent">LIFT.</span>
+                </div>
+              </div>
+              <div class="safari-toolbar">
+                <div class="safari-url-bar">
+                  <span class="aa">A𝙰</span>
+                  <span class="url">liftlog.app</span>
+                  <span class="refresh">↻</span>
+                </div>
+                <div class="safari-toolbar-icons">
+                  <div class="safari-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+                  </div>
+                  <div class="safari-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                  <div class="safari-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                  </div>
+                  <div class="safari-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                  </div>
+                  <div class="safari-icon dots" style="position:relative;">
+                    ●●●
+                    <div class="target-ring-solid"></div>
+                    <div class="target-ring"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-instruction">Tap the <span class="signal">···</span> button</div>
+        <div class="step-detail">It's at the <strong>bottom-right of your Safari toolbar</strong> — three dots inside a circle.</div>
+      </div>
+
+      <!-- STEP 2: Tap Share in the menu that opens -->
+      <div class="step-content" id="step2">
+        <div class="iphone-mock">
+          <div class="iphone-screen">
+            <div class="iphone-notch"></div>
+            <div class="safari-mock">
+              <div class="safari-page" style="opacity:0.4;">
+                <div class="mini-top">
+                  <div style="display:flex; gap:4px; align-items:center;">
+                    <span class="ll-badge">LL</span>
+                    <span style="font-family:'IBM Plex Mono',monospace; font-size:6px; letter-spacing:0.1em;">LIFT.LOG</span>
+                  </div>
+                  <span class="install-mini-btn">INSTALL ↓</span>
+                </div>
+                <div class="mini-h">
+                  NO <span class="strike">ACCOUNT</span><br>
+                  NO <span class="strike">ADS</span><br>
+                  JUST <span class="accent">LIFT.</span>
+                </div>
+              </div>
+
+              <!-- The popup menu -->
+              <div class="toolbar-menu">
+                <div class="menu-item highlight">
+                  <span>Share</span>
+                  <span class="menu-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                  </span>
+                  <div class="menu-pulse-ring"></div>
+                </div>
+                <div class="menu-item">
+                  <span>Bookmarks</span>
+                  <span class="menu-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                  </span>
+                </div>
+                <div class="menu-item">
+                  <span>New Tab</span>
+                  <span class="menu-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </span>
+                </div>
+              </div>
+
+              <div class="safari-toolbar">
+                <div class="safari-url-bar">
+                  <span class="aa">A𝙰</span>
+                  <span class="url">liftlog.app</span>
+                  <span class="refresh">↻</span>
+                </div>
+                <div class="safari-toolbar-icons">
+                  <div class="safari-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="15 18 9 12 15 6"/></svg></div>
+                  <div class="safari-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="9 18 15 12 9 6"/></svg></div>
+                  <div class="safari-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
+                  <div class="safari-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg></div>
+                  <div class="safari-icon dots" style="color: var(--signal); font-weight: 900;">●●●</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-instruction">Tap <span class="signal">Share</span></div>
+        <div class="step-detail">It's the <strong>first item</strong> in the menu that just popped up.</div>
+      </div>
+
+      <!-- STEP 3: Scroll down → Add to Home Screen -->
+      <div class="step-content" id="step3">
+        <div class="iphone-mock">
+          <div class="iphone-screen">
+            <div class="iphone-notch"></div>
+            <div class="safari-mock">
+              <!-- Share sheet covering most of the screen -->
+              <div class="share-sheet">
+                <div class="share-sheet-handle"></div>
+                <div class="share-sheet-header">
+                  <div class="share-app-icon">LL</div>
+                  <div class="share-app-meta">
+                    <div class="title">Lift.Log — No account...</div>
+                    <div class="domain">liftlog.app</div>
+                  </div>
+                </div>
+                <div class="share-app-row">
+                  <div class="share-recent"></div>
+                  <div class="share-recent"></div>
+                  <div class="share-recent"></div>
+                  <div class="share-recent"></div>
+                </div>
+                <div class="share-list-item dim">
+                  <span>Copy</span>
+                </div>
+                <div class="share-list-item dim">
+                  <span>Add to Bookmarks</span>
+                </div>
+                <div class="share-list-item dim">
+                  <span>Add to Reading List</span>
+                </div>
+                <div class="share-list-item highlight">
+                  <span>Add to Home Screen</span>
+                  <span class="share-list-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </span>
+                </div>
+                <div class="share-list-item dim">
+                  <span>Find on Page</span>
+                </div>
+                <div class="scroll-indicator">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-instruction">Find <span class="signal">"Add to Home Screen"</span></div>
+        <div class="step-detail"><strong>Scroll down</strong> in the share sheet — past Copy and Bookmarks. Tap it.</div>
+      </div>
+
+      <!-- STEP 4: Home screen -->
+      <div class="step-content" id="step4">
+        <div class="iphone-mock">
+          <div class="iphone-screen">
+            <div class="iphone-notch"></div>
+            <div class="homescreen">
+              <div class="home-time">9:41</div>
+              <div class="home-grid">
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon lift-log">LL</div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+                <div class="home-icon"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="step-instruction">You're <span class="signal">in.</span></div>
+        <div class="step-detail">Lift.Log is on your home screen. Tap it like any other app — <strong>fullscreen, offline, yours.</strong></div>
+      </div>
+
+    </div>
+
+    <div class="overlay-footer">
+      <button class="overlay-btn" onclick="prevStep()" id="prevBtn" disabled>← BACK</button>
+      <button class="overlay-btn primary" onclick="nextStep()" id="nextBtn">NEXT →</button>
+    </div>
+  </div>
+</div>
+
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
   }
+
+  // ---------- Guided install overlay ----------
+  let currentStep = 1;
+  const totalSteps = 4;
+
+  function openInstall() {
+    document.getElementById('installOverlay').classList.add('active');
+    goToStep(1);
+  }
+  function closeInstall() {
+    document.getElementById('installOverlay').classList.remove('active');
+  }
+  function goToStep(n) {
+    currentStep = n;
+    document.querySelectorAll('.step-content').forEach(s => s.classList.remove('active'));
+    document.getElementById('step' + n).classList.add('active');
+
+    for (let i = 1; i <= totalSteps; i++) {
+      document.getElementById('pip' + i).classList.toggle('active', i <= n);
+    }
+    document.getElementById('stepCounter').textContent = `STEP ${n} OF ${totalSteps}`;
+
+    const headlines = ['INSTALL ON IPHONE', 'TAP SHARE', 'SCROLL & TAP', "YOU'RE IN."];
+    document.getElementById('overlayHeadline').textContent = headlines[n - 1];
+
+    document.getElementById('prevBtn').disabled = n === 1;
+    document.getElementById('nextBtn').textContent = n === totalSteps ? 'CLOSE ✓' : 'NEXT →';
+  }
+  function nextStep() {
+    if (currentStep < totalSteps) goToStep(currentStep + 1);
+    else closeInstall();
+  }
+  function prevStep() {
+    if (currentStep > 1) goToStep(currentStep - 1);
+  }
+  document.getElementById('installOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'installOverlay') closeInstall();
+  });
 </script>
 
 </body>
