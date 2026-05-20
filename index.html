@@ -572,22 +572,32 @@
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 20px;
+    padding: 12px;
     animation: installFadeIn 0.3s ease-out;
   }
   .install-overlay.active { display: flex; }
   @keyframes installFadeIn { from { opacity: 0; } to { opacity: 1; } }
+  /* When overlay is open, lock the document so the *page* can't scroll either. */
+  html.install-locked, body.install-locked { overflow: hidden; height: 100%; }
 
+  /* Single-screen, no scroll. Each step fits inside the viewport. */
   .overlay-inner {
     background: var(--bg-2);
     border: 1px solid var(--line-bright);
     max-width: 480px;
     width: 100%;
-    max-height: 95vh;
-    overflow-y: auto;
+    height: 100dvh;
+    max-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     position: relative;
     animation: installSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
+  @supports not (height: 100dvh) {
+    .overlay-inner { height: 100vh; max-height: 100vh; }
+  }
+  .install-overlay { padding: 0; }
   @keyframes installSlideUp {
     from { transform: translateY(40px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -619,7 +629,8 @@
   .overlay-close:hover { background: var(--line); color: var(--signal); border-color: var(--signal); }
 
   .overlay-header {
-    padding: 36px 32px 24px;
+    flex-shrink: 0;
+    padding: 20px 24px 16px;
     border-bottom: 1px solid var(--line);
     text-align: center;
   }
@@ -627,13 +638,13 @@
     font-size: 10px;
     letter-spacing: 0.25em;
     color: var(--signal);
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     font-weight: 600;
   }
   .overlay-headline {
     font-family: 'Archivo', sans-serif;
     font-weight: 900;
-    font-size: 28px;
+    font-size: 24px;
     line-height: 1;
     text-transform: uppercase;
     letter-spacing: -0.02em;
@@ -642,43 +653,63 @@
   .step-progress {
     display: flex;
     gap: 4px;
-    margin-top: 20px;
+    margin-top: 14px;
     justify-content: center;
   }
   .progress-pip {
-    width: 28px;
+    width: 26px;
     height: 3px;
     background: var(--line-bright);
     transition: background 0.3s;
   }
   .progress-pip.active { background: var(--signal); }
 
+  /* Body fills the remaining space and centers the step content vertically. */
   .overlay-body {
-    padding: 32px;
+    flex: 1;
+    min-height: 0;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    overflow: hidden;
   }
 
-  .step-content { display: none; }
-  .step-content.active { display: block; animation: installFadeStep 0.4s ease-out; }
+  .step-content { display: none; flex: 1; flex-direction: column; justify-content: center; min-height: 0; }
+  .step-content.active { display: flex; animation: installFadeStep 0.4s ease-out; }
   @keyframes installFadeStep {
     from { opacity: 0; transform: translateX(20px); }
     to { opacity: 1; transform: translateX(0); }
   }
 
-  /* iPhone mockup */
+  /* iPhone mockup — sized HEIGHT-first so it can never push the step taller
+     than the viewport. Width follows via aspect-ratio. Other vertical
+     elements that compete for room (header ≈120, text ≈80, footer ≈90,
+     padding ≈30) come out to ~320px of fixed chrome; whatever's left goes
+     to the mockup, capped at 460px on tall screens. */
   .iphone-mock {
     background: #1c1c1e;
-    border-radius: 36px;
-    padding: 8px;
-    max-width: 240px;
-    margin: 0 auto 24px;
+    border-radius: 30px;
+    padding: 5px;
+    height: min(460px, calc(100dvh - 340px));
+    aspect-ratio: 9 / 19.5;
+    width: auto;
+    max-width: 100%;
+    margin: 0 auto 10px;
     position: relative;
     box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 20px 40px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+  @supports not (height: 100dvh) {
+    .iphone-mock { height: min(460px, calc(100vh - 340px)); }
   }
   .iphone-screen {
     background: var(--ios-bg);
-    border-radius: 30px;
+    border-radius: 26px;
     overflow: hidden;
-    aspect-ratio: 9 / 19.5;
+    width: 100%;
+    height: 100%;
     position: relative;
   }
   .iphone-notch {
@@ -1093,24 +1124,27 @@
   .step-instruction {
     font-family: 'Archivo', sans-serif;
     font-weight: 800;
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1.1;
     text-transform: uppercase;
     letter-spacing: -0.01em;
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 8px;
+    flex-shrink: 0;
   }
   .step-instruction .signal { color: var(--signal); }
   .step-detail {
-    font-size: 13px;
-    line-height: 1.6;
+    font-size: 12px;
+    line-height: 1.5;
     color: var(--text-dim);
     text-align: center;
+    flex-shrink: 0;
   }
   .step-detail strong { color: var(--text); font-weight: 500; }
 
   .overlay-footer {
-    padding: 20px 32px 32px;
+    flex-shrink: 0;
+    padding: 16px 24px calc(20px + env(safe-area-inset-bottom));
     display: flex;
     gap: 10px;
     border-top: 1px solid var(--line);
@@ -1163,13 +1197,11 @@
         <div class="hero-id">A WORKOUT TRACKER FOR LIFTERS, NOT DRIFTERS.</div>
         
         <h1 class="hero-headline">
-          NO <span class="strike">ACCOUNT.</span><br>
-          NO <span class="strike">ADS.</span><br>
           JUST <span class="signal">LIFT.</span>
         </h1>
 
         <p class="hero-tagline">
-          Open it. Lift. Close it. <strong>Lift.Log</strong> is a one-tap workout tracker for people who want to leave the heavy thinking at the office and put the heavy lifting where it belongs.
+          <strong>Lift.Log</strong> is a one-tap workout tracker for people who want to leave the heavy thinking at the office and put the heavy lifting where it belongs.
         </p>
       </div>
 
@@ -1520,10 +1552,14 @@
 
   function openInstall() {
     document.getElementById('installOverlay').classList.add('active');
+    document.documentElement.classList.add('install-locked');
+    document.body.classList.add('install-locked');
     goToStep(1);
   }
   function closeInstall() {
     document.getElementById('installOverlay').classList.remove('active');
+    document.documentElement.classList.remove('install-locked');
+    document.body.classList.remove('install-locked');
   }
   function goToStep(n) {
     currentStep = n;
