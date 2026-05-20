@@ -1302,16 +1302,24 @@
     color: var(--text-dim);
   }
 
-  /* Quick-log modal (centered) */
-  #quickLogModal { align-items: center; }
+  /* Quick-log modal (centered, sits above the Monthly Log overlay) */
+  #quickLogModal { align-items: center; z-index: 400; }
   #quickLogModal .modal { border-radius: 16px; width: 340px; max-width: 92vw; padding: 20px; animation: calFade 0.18s ease-out; }
   .ql-modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .ql-modal-emoji { font-size: 28px; line-height: 1; }
+  .ql-modal-titles { display: flex; flex-direction: column; gap: 2px; }
   .ql-modal-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 24px;
+    line-height: 1;
     letter-spacing: 0.04em;
     color: var(--text);
+  }
+  .ql-modal-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--accent);
   }
   .ql-section-label {
     font-family: 'JetBrains Mono', monospace;
@@ -2295,14 +2303,17 @@
   </div>
 </div>
 
-<!-- Quick-log activity modal -->
+<!-- Quick-log activity modal (date comes from the calendar selection, not here) -->
 <div class="modal-backdrop" id="quickLogModal">
   <div class="modal">
     <div class="ql-modal-head">
       <span class="ql-modal-emoji" id="qlEmoji">·</span>
-      <span class="ql-modal-title" id="qlTitle">LOG</span>
+      <div class="ql-modal-titles">
+        <div class="ql-modal-title" id="qlTitle">LOG</div>
+        <div class="ql-modal-date" id="qlDateLabel">TODAY</div>
+      </div>
     </div>
-    <div class="ql-section-label">DURATION</div>
+    <div class="ql-section-label" id="qlDurationLabel">DURATION</div>
     <div class="ql-durations" id="qlDurations">
       <button type="button" class="ql-dur" data-min="15">15min</button>
       <button type="button" class="ql-dur" data-min="30">30min</button>
@@ -2312,14 +2323,6 @@
       <button type="button" class="ql-dur" data-min="120">2h</button>
       <button type="button" class="ql-dur" data-min="180">3h</button>
     </div>
-    <div class="ql-section-label">DATE</div>
-    <div class="ql-dates" id="qlDates">
-      <button type="button" class="ql-date" data-offset="0">TODAY</button>
-      <button type="button" class="ql-date" data-offset="1">YESTERDAY</button>
-      <button type="button" class="ql-date" data-offset="2">2 DAYS AGO</button>
-      <button type="button" class="ql-date" data-offset="custom">PICK…</button>
-    </div>
-    <input type="date" class="ql-date-input" id="qlDateInput" style="display:none">
     <div class="modal-buttons" style="margin-top:14px;">
       <button class="modal-btn" onclick="closeModal('quickLogModal')">CANCEL</button>
       <button class="modal-btn primary" id="qlSaveBtn" onclick="quickLogSave()" disabled>LOG</button>
@@ -2421,15 +2424,11 @@
       <div class="wa-section-title">SETUP</div>
       <div class="wa-step">
         <div class="wa-step-num">1</div>
-        <div>From WhatsApp, message <strong>+1 415 523 8886</strong> with <code>join eleven-say</code> (one-time per device — Twilio sandbox).</div>
+        <div>Save your number above — we'll send you a message with all the trigger phrases.</div>
       </div>
       <div class="wa-step">
         <div class="wa-step-num">2</div>
-        <div>Save your number above. We'll send you a welcome message with all trigger phrases.</div>
-      </div>
-      <div class="wa-step">
-        <div class="wa-step-num">3</div>
-        <div>Message the sandbox any time to log activities. They appear as blue dots on your calendar.</div>
+        <div>Message Lift.Log any time to log activities. They will appear logged on your calendar.</div>
       </div>
     </div>
 
@@ -4503,32 +4502,30 @@
   let qlState = { activity: null, durationMin: null, dateKey: null };
 
   function openQuickLog(activity) {
-    qlState = { activity, durationMin: null, dateKey: todayKey() };
+    // Date comes from the calendar selection. If no day is tapped, default to today.
+    const dateKey = logSelectedDate || todayKey();
+    qlState = { activity, durationMin: null, dateKey };
+
     const isBio = activity === 'bio';
     const meta = ACTIVITY_META[activity] || ACTIVITY_META[bucketForActivity(activity)] || { emoji: '·', label: activity.toUpperCase() };
     document.getElementById('qlEmoji').textContent = meta.emoji;
     document.getElementById('qlTitle').textContent = `LOG ${meta.label}`;
+    document.getElementById('qlDateLabel').textContent = prettyQuickLogDate(dateKey);
 
-    // Bio sessions have no duration — hide the duration row and auto-enable save once a date is picked.
+    // Bio sessions have no duration — hide the duration row and auto-enable save.
     const durRow = document.getElementById('qlDurations');
-    const durLabel = durRow.previousElementSibling;
+    const durLabel = document.getElementById('qlDurationLabel');
     durRow.style.display = isBio ? 'none' : '';
     if (durLabel) durLabel.style.display = isBio ? 'none' : '';
-    if (isBio) qlState.durationMin = 0;
+    qlState.durationMin = isBio ? 0 : null;
 
     // Reset selection visuals
     document.querySelectorAll('#qlDurations .ql-dur').forEach(b => b.classList.remove('selected'));
-    document.querySelectorAll('#qlDates .ql-date').forEach((b, i) => b.classList.toggle('selected', b.dataset.offset === '0'));
-    const dateInput = document.getElementById('qlDateInput');
-    dateInput.style.display = 'none';
-    dateInput.value = todayKey();
-    dateInput.min = daysAgo(365);
-    dateInput.max = todayKey();
 
     refreshQuickLogSave();
     document.getElementById('quickLogModal').classList.add('active');
 
-    // Wire duration buttons (idempotent — clears old handlers via cloneNode pattern not needed; using onclick directly)
+    // Wire duration buttons (rebinds each time, replaces previous handlers cleanly).
     document.querySelectorAll('#qlDurations .ql-dur').forEach(btn => {
       btn.onclick = () => {
         document.querySelectorAll('#qlDurations .ql-dur').forEach(b => b.classList.remove('selected'));
@@ -4537,28 +4534,15 @@
         refreshQuickLogSave();
       };
     });
-    document.querySelectorAll('#qlDates .ql-date').forEach(btn => {
-      btn.onclick = () => {
-        document.querySelectorAll('#qlDates .ql-date').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        if (btn.dataset.offset === 'custom') {
-          dateInput.style.display = 'block';
-          dateInput.focus();
-          qlState.dateKey = dateInput.value || todayKey();
-        } else {
-          dateInput.style.display = 'none';
-          qlState.dateKey = daysAgo(parseInt(btn.dataset.offset, 10));
-        }
-        refreshQuickLogSave();
-      };
-    });
-    dateInput.onchange = () => {
-      const v = dateInput.value;
-      if (!v) return;
-      if (v < daysAgo(365) || v > todayKey()) return;
-      qlState.dateKey = v;
-      refreshQuickLogSave();
-    };
+  }
+
+  function prettyQuickLogDate(dateKey) {
+    if (!dateKey) return '';
+    const today = todayKey();
+    if (dateKey === today) return 'TODAY';
+    if (dateKey === daysAgo(1)) return 'YESTERDAY';
+    const d = new Date(dateKey + 'T00:00:00');
+    return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
   }
 
   function refreshQuickLogSave() {
