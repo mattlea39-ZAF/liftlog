@@ -1059,10 +1059,10 @@
   }
   .log-day-row {
     display: grid;
-    grid-template-columns: 22px 1fr auto;
+    grid-template-columns: 22px 1fr auto 28px;
     gap: 10px;
     padding: 6px 0;
-    align-items: baseline;
+    align-items: center;
     border-top: 1px solid var(--border);
   }
   .log-day-row:first-of-type { border-top: 0; }
@@ -1079,6 +1079,22 @@
     letter-spacing: 0.08em;
     color: var(--text-dim);
   }
+  .log-day-del {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    justify-self: end;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .log-day-del:hover { color: var(--danger); border-color: var(--danger); }
+  .log-day-del:active { background: var(--surface-2); transform: scale(0.94); }
   .log-day-empty {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
@@ -2954,6 +2970,10 @@
       if (added > 0) {
         saveState();
         render();
+        // Also refresh the Monthly Log if it's currently open so blue dots appear without a re-open
+        if (document.getElementById('logPage') && document.getElementById('logPage').classList.contains('active')) {
+          renderLogPage();
+        }
       }
     } catch (err) {
       // Silent — offline, CORS, etc. Try again on next open.
@@ -3325,7 +3345,7 @@
   }
 
   // Render an inline card listing everything logged on `dateKey` — lifts and
-  // WhatsApp/in-app activities. Used when the user taps a calendar cell.
+  // WhatsApp/in-app activities. Each row has a × button to unlog it.
   function renderDayDetail(dateKey) {
     if (!dateKey) return '';
     const month = dateKey.slice(0, 7);
@@ -3342,14 +3362,28 @@
       lifts.forEach(e => {
         const session = sessionNameFor(e.workoutType, e.sessionId);
         const wtName = workoutTypeName(e.workoutType);
-        body += `<div class="log-day-row"><span class="log-day-emoji">🏋️</span><span class="log-day-label">${escapeHtml(session)}</span><span class="log-day-meta">${escapeHtml(wtName)}</span></div>`;
+        body += `
+          <div class="log-day-row">
+            <span class="log-day-emoji">🏋️</span>
+            <span class="log-day-label">${escapeHtml(session)}</span>
+            <span class="log-day-meta">${escapeHtml(wtName)}</span>
+            <button type="button" class="log-day-del" aria-label="Unlog"
+              onclick="deleteDayLift('${escapeAttr(e.workoutType)}', ${parseInt(e.sessionId, 10)}, '${escapeAttr(e.date)}')">×</button>
+          </div>`;
       });
       acts.forEach(e => {
         const bucket = (e && e.type === 'bio') ? 'bio' : bucketForActivity(e && e.activity);
         const meta = ACTIVITY_META[bucket] || { emoji: '·', label: bucket.toUpperCase() };
         const dur = e.durationMin ? formatActivityDuration(e.durationMin) : '';
         const label = e.activity ? String(e.activity).toUpperCase() : meta.label;
-        body += `<div class="log-day-row"><span class="log-day-emoji">${meta.emoji}</span><span class="log-day-label">${escapeHtml(label)}</span><span class="log-day-meta">${escapeHtml(dur)}</span></div>`;
+        body += `
+          <div class="log-day-row">
+            <span class="log-day-emoji">${meta.emoji}</span>
+            <span class="log-day-label">${escapeHtml(label)}</span>
+            <span class="log-day-meta">${escapeHtml(dur)}</span>
+            <button type="button" class="log-day-del" aria-label="Unlog"
+              onclick="deleteDayActivity('${escapeAttr(e.id || '')}', '${escapeAttr(e.date)}')">×</button>
+          </div>`;
       });
     }
 
@@ -3362,6 +3396,42 @@
         ${body}
       </div>
     `;
+  }
+
+  function deleteDayLift(workoutType, sessionId, date) {
+    const month = String(date).slice(0, 7);
+    if (!state.log || !Array.isArray(state.log[month])) return;
+    state.log[month] = state.log[month].filter(e => !(e && e.workoutType === workoutType && e.sessionId === sessionId && e.date === date));
+    if (state.log[month].length === 0) delete state.log[month];
+    saveState();
+    if (navigator.vibrate) navigator.vibrate(15);
+    renderLogPage();
+  }
+
+  function deleteDayActivity(id, date) {
+    if (!id) return;
+    const month = String(date).slice(0, 7);
+    let removed = null;
+    if (state.activityLog && Array.isArray(state.activityLog[month])) {
+      const before = state.activityLog[month];
+      state.activityLog[month] = before.filter(e => {
+        if (e && e.id === id) { removed = e; return false; }
+        return true;
+      });
+      if (state.activityLog[month].length === 0) delete state.activityLog[month];
+    }
+    saveState();
+    if (navigator.vibrate) navigator.vibrate(15);
+    renderLogPage();
+
+    // If this event was synced to the Worker (came from WhatsApp or was pushed by quick-log),
+    // also remove it server-side so it doesn't come back on the next sync.
+    const num = state.meta && state.meta.whatsappNumber;
+    if (num && removed && date) {
+      const from = 'whatsapp:' + num;
+      const qs = `from=${encodeURIComponent(from)}&date=${encodeURIComponent(date)}&id=${encodeURIComponent(id)}`;
+      fetch(`${WHATSAPP_WORKER_URL}/events?${qs}`, { method: 'DELETE' }).catch(() => {});
+    }
   }
 
   // Tap a calendar day inside the Monthly Log → show what was logged on
@@ -4423,6 +4493,8 @@
     document.getElementById('logPage').classList.add('active');
     renderLogPage();
     renderWhatsAppStatus();
+    // Pull any fresh WhatsApp-logged events; if it adds anything it'll re-render.
+    syncActivityLog();
   }
 
   function renderWhatsAppStatus() {
@@ -4568,7 +4640,9 @@
     if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
     renderLogPage();
 
-    // Push to Worker if WhatsApp is connected (so the same event appears on other devices)
+    // Push to Worker if WhatsApp is connected (so the same event appears on other devices).
+    // We pass our local `id` so the Worker stores under the same key — otherwise sync would
+    // pull back the Worker's own-generated id and duplicate the entry locally.
     const num = state.meta && state.meta.whatsappNumber;
     if (num) {
       try {
@@ -4577,6 +4651,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             from: 'whatsapp:' + num,
+            id: event.id,
             type: event.type,
             activity: event.activity,
             durationMin: event.durationMin,

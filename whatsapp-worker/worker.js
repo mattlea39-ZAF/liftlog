@@ -26,13 +26,16 @@ export default {
     }
 
     if (url.pathname === '/events' && request.method === 'OPTIONS') {
-      return new Response(null, { status: 204, headers: corsHeaders('GET, POST, OPTIONS') });
+      return new Response(null, { status: 204, headers: corsHeaders('GET, POST, DELETE, OPTIONS') });
     }
     if (url.pathname === '/events' && request.method === 'GET') {
       return handleEventsGet(request, env);
     }
     if (url.pathname === '/events' && request.method === 'POST') {
       return handleEventsPost(request, env);
+    }
+    if (url.pathname === '/events' && request.method === 'DELETE') {
+      return handleEventsDelete(request, env);
     }
 
     if (url.pathname === '/welcome' && request.method === 'OPTIONS') {
@@ -124,7 +127,9 @@ async function handleEventsPost(request, env) {
   let date = String(body.date || '').slice(0, 10);
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) date = localToday();
 
-  const id = newId();
+  // Reuse the client's id if it sent one (so app + server stay in sync), else mint a new one.
+  const rawId = String(body.id || '').slice(0, 64);
+  const id = /^[A-Za-z0-9_-]+$/.test(rawId) ? rawId : newId();
   const stored = { type, activity, durationMin, date, from, ts: new Date().toISOString(), id, raw: '(in-app)' };
 
   try {
@@ -134,6 +139,28 @@ async function handleEventsPost(request, env) {
   }
   return new Response(JSON.stringify({ ok: true, event: stored }), {
     status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders('GET, POST, OPTIONS') }
+  });
+}
+
+// DELETE /events?from=whatsapp:+...&date=YYYY-MM-DD&id=<event-id>
+async function handleEventsDelete(request, env) {
+  if (!env.EVENTS) return jsonErr('EVENTS KV binding not configured', 503);
+  const url = new URL(request.url);
+  const from = url.searchParams.get('from') || '';
+  const date = url.searchParams.get('date') || '';
+  const id = url.searchParams.get('id') || '';
+  if (!/^whatsapp:\+\d{6,20}$/.test(from)) return jsonErr('invalid from', 400);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return jsonErr('invalid date', 400);
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return jsonErr('invalid id', 400);
+
+  const key = `evt:${from}:${date}:${id}`;
+  try {
+    await env.EVENTS.delete(key);
+  } catch (err) {
+    return jsonErr('kv delete failed: ' + (err && err.message), 500);
+  }
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200, headers: { 'Content-Type': 'application/json', ...corsHeaders('GET, POST, DELETE, OPTIONS') }
   });
 }
 
