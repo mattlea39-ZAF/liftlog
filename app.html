@@ -365,6 +365,54 @@
     margin-bottom: 10px;
   }
 
+  /* Round pips at the bottom of a superset card */
+  .superset-rounds {
+    margin-top: 8px;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .superset-rounds.complete {
+    border-color: var(--accent);
+    background: linear-gradient(135deg, rgba(212, 255, 0, 0.10), var(--surface));
+  }
+  .ss-pip-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .ss-pip {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid var(--border);
+    padding: 0;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+  }
+  .ss-pip:active { transform: scale(0.88); }
+  .ss-pip.filled {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px var(--accent), 0 0 8px rgba(212, 255, 0, 0.35);
+  }
+  .ss-pip-counter {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .superset-rounds.complete .ss-pip-counter { color: var(--accent); font-weight: 600; }
+
   .superset-brace {
     position: absolute;
     left: 0;
@@ -2713,7 +2761,7 @@
           if (!wt || !wt.sessions) return;
           Object.values(wt.sessions).forEach(sess => {
             if (!sess || !Array.isArray(sess.groups)) return;
-            sess.groups.forEach(g => g && Array.isArray(g.exercises) && g.exercises.forEach(e => { e.done = false; }));
+            sess.groups.forEach(g => g && Array.isArray(g.exercises) && g.exercises.forEach(e => { e.done = false; e.setsDone = 0; }));
           });
         });
       }
@@ -2766,7 +2814,48 @@
   }
 
   function clearAllTicks() {
-    state.groups.forEach(g => g.exercises.forEach(e => e.done = false));
+    state.groups.forEach(g => g.exercises.forEach(e => { e.done = false; e.setsDone = 0; }));
+  }
+
+  // Parse target set count from a "sets x reps" meta string ("4 x 15", "3 x 30").
+  function parseTargetSets(meta) {
+    if (!meta) return null;
+    const m = String(meta).match(/^\s*(\d+)/);
+    if (!m) return null;
+    const n = parseInt(m[1], 10);
+    return Number.isFinite(n) && n > 0 && n <= 20 ? n : null;
+  }
+
+  // Tap a superset pip. n is 1-based — the pip's position.
+  // Standard pattern: tap an unfilled pip → fill up to it. Tap a filled pip → leave the
+  // pips before it filled and clear this one (so re-tapping the rightmost filled pip
+  // decrements by one). Once all pips fill, every exercise in the superset marks done.
+  function toggleSupersetRound(gId, supersetId, n) {
+    if (!supersetId) return;
+    const g = state.groups.find(x => x.id === gId);
+    if (!g) return;
+    const targets = g.exercises.filter(e => e.supersetId === supersetId);
+    if (!targets.length) return;
+
+    const totalSets = parseTargetSets(targets[0].meta) || 4;
+    const current = Math.max(0, Math.min(totalSets, parseInt(targets[0].setsDone, 10) || 0));
+    const newCount = n <= current ? n - 1 : Math.min(n, totalSets);
+
+    const justFilled = newCount > current;
+    const justFinished = current < totalSets && newCount >= totalSets;
+
+    targets.forEach(e => {
+      e.setsDone = newCount;
+      e.done = newCount >= totalSets;
+    });
+
+    saveState();
+    savePendingBackdate();
+    render();
+
+    if (navigator.vibrate) {
+      navigator.vibrate(justFinished ? [18, 30, 25, 30, 25] : (justFilled ? [15, 25] : 10));
+    }
   }
 
   function sessionName(sessionId) {
@@ -3121,9 +3210,7 @@
             ${linkLabel ? `<button class="action-btn link-btn ${ex.supersetId ? 'linked' : ''}" onclick="toggleSuperset('${group.id}','${ex.id}')">${linkLabel}</button>` : '<div class="action-btn-spacer"></div>'}
             <button class="action-btn unit-btn" onclick="toggleUnit('${group.id}','${ex.id}')">${unitLabel}</button>
           </div>
-          <button class="done-bar ${ex.done ? 'active' : ''}" onclick="toggleDone('${group.id}','${ex.id}')">
-            ${ex.done ? '✓ DONE' : 'MARK DONE'}
-          </button>
+          ${inSuperset ? '' : `<button class="done-bar ${ex.done ? 'active' : ''}" onclick="toggleDone('${group.id}','${ex.id}')">${ex.done ? '✓ DONE' : 'MARK DONE'}</button>`}
         `;
         return exEl;
       };
@@ -3159,6 +3246,20 @@
             const isLastInSet = k === unit.items.length - 1;
             wrapper.appendChild(renderExercise(ex, eIdx, true, isLastInSet));
           });
+
+          // Round pips for the superset. All linked exercises share setsDone.
+          const target = parseTargetSets(unit.items[0].meta) || 4;
+          const setsDone = Math.max(0, Math.min(target, parseInt(unit.items[0].setsDone, 10) || 0));
+          const pipsHtml = Array.from({ length: target }, (_, i) =>
+            `<button type="button" class="ss-pip${i < setsDone ? ' filled' : ''}" aria-label="Round ${i + 1}" onclick="toggleSupersetRound('${group.id}','${unit.items[0].supersetId}',${i + 1})"></button>`
+          ).join('');
+          const pipRow = document.createElement('div');
+          pipRow.className = 'superset-rounds' + (setsDone >= target ? ' complete' : '');
+          pipRow.innerHTML = `
+            <div class="ss-pip-row">${pipsHtml}</div>
+            <div class="ss-pip-counter">ROUND ${setsDone} / ${target}</div>
+          `;
+          wrapper.appendChild(pipRow);
           exContainer.appendChild(wrapper);
         } else {
           exContainer.appendChild(renderExercise(unit.item, unit.idx, false, false));
