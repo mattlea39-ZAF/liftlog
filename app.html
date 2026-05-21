@@ -1538,25 +1538,37 @@
     color: var(--text-dim);
     margin-bottom: 12px;
   }
-  .wa-join-steps {
-    margin: 0;
-    padding-left: 20px;
-    font-family: 'Inter', sans-serif;
-    font-size: 13px;
-    line-height: 1.7;
-    color: var(--text);
-  }
-  .wa-join-steps li { margin-bottom: 4px; }
-  .wa-join-steps strong { color: var(--text); font-weight: 600; }
-  .wa-join-steps code {
+  .wa-join-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 16px;
+    background: #25d366; /* WhatsApp brand green so the user instantly recognises */
+    color: #fff;
+    border-radius: 10px;
     font-family: 'JetBrains Mono', monospace;
-    background: var(--surface-2);
-    color: var(--accent);
-    padding: 2px 8px;
-    border-radius: 4px;
     font-size: 12px;
-    letter-spacing: 0.04em;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-decoration: none;
+    text-transform: uppercase;
+    margin: 4px 0 12px;
+    transition: transform 0.1s, opacity 0.15s;
   }
+  .wa-join-cta:active { transform: scale(0.98); opacity: 0.9; }
+  .wa-join-cta-emoji { font-size: 18px; line-height: 1; }
+  .wa-join-hint {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+    text-align: center;
+    text-transform: uppercase;
+    line-height: 1.5;
+  }
+  .wa-join-hint.retrying { color: var(--accent); }
 
   .wa-step {
     display: grid;
@@ -2530,15 +2542,13 @@
       <div class="wa-status-line" id="waPageStatus">NOT CONNECTED</div>
 
       <div class="wa-join-card" id="waJoinCard">
-        <div class="wa-join-head">ALMOST THERE — ONE QUICK STEP</div>
-        <p class="wa-join-body">We couldn't send the welcome message because your WhatsApp hasn't said hello to Lift.Log yet. Do this once:</p>
-        <ol class="wa-join-steps">
-          <li>Open <strong>WhatsApp</strong></li>
-          <li>Send a message to <strong>+1 415 523 8886</strong></li>
-          <li>Type just this: <code>join eleven-say</code></li>
-          <li>You'll get a reply saying you're set up</li>
-          <li>Come back here and tap <strong>SAVE & SEND WELCOME</strong> again</li>
-        </ol>
+        <div class="wa-join-head">ONE TAP TO FINISH</div>
+        <p class="wa-join-body">Your WhatsApp just needs to say hello to Lift.Log once. Tap the button below — WhatsApp will open with a short message already typed. Hit <strong>Send</strong> in WhatsApp, then come back here.</p>
+        <a class="wa-join-cta" href="https://wa.me/14155238886?text=join%20eleven-say" target="_blank" rel="noopener noreferrer">
+          <span class="wa-join-cta-emoji">💬</span>
+          <span class="wa-join-cta-text">TAP TO OPEN WHATSAPP</span>
+        </a>
+        <p class="wa-join-hint" id="waJoinHint">Waiting for you… we'll finish setting up automatically when you come back.</p>
       </div>
     </div>
 
@@ -4687,7 +4697,52 @@
   function hideWaJoinCard() {
     const el = document.getElementById('waJoinCard');
     if (el) el.classList.remove('show');
+    const hint = document.getElementById('waJoinHint');
+    if (hint) {
+      hint.textContent = "Waiting for you… we'll finish setting up automatically when you come back.";
+      hint.classList.remove('retrying');
+    }
   }
+
+  // Try to deliver the welcome message again, silently. Returns true on success.
+  async function retryWelcome() {
+    const num = state.meta && state.meta.whatsappNumber;
+    if (!num) return false;
+    try {
+      const res = await fetch(`${WHATSAPP_WORKER_URL}/welcome`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: 'whatsapp:' + num })
+      });
+      if (!res.ok) return false;
+      setWaPageStatus('CONNECTED · WELCOME MESSAGE SENT', 'connected');
+      hideWaJoinCard();
+      // Pull any events the user may have already logged before joining
+      syncActivityLog();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  // When the user returns to the tab/app and the join card is showing,
+  // assume they may have just sent the join code and try the welcome again.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    const card = document.getElementById('waJoinCard');
+    if (!card || !card.classList.contains('show')) return;
+    const hint = document.getElementById('waJoinHint');
+    if (hint) {
+      hint.textContent = 'Checking…';
+      hint.classList.add('retrying');
+    }
+    retryWelcome().then(ok => {
+      if (!ok && hint) {
+        hint.textContent = "Hmm, still not through. Did you tap Send in WhatsApp? Try the button above again.";
+        hint.classList.remove('retrying');
+      }
+    });
+  });
 
   function closeWhatsAppPage() {
     document.getElementById('whatsappPage').classList.remove('active');
