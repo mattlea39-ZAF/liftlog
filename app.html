@@ -1512,6 +1512,52 @@
   .wa-status-line.connected { color: var(--accent); }
   .wa-status-line.error { color: var(--danger); }
 
+  /* Recovery card shown only when the welcome message fails (i.e. the user
+     hasn't joined the Twilio sandbox yet). Hidden by default. */
+  .wa-join-card {
+    display: none;
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--danger);
+    border-radius: 12px;
+  }
+  .wa-join-card.show { display: block; }
+  .wa-join-head {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    color: var(--danger);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .wa-join-body {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .wa-join-steps {
+    margin: 0;
+    padding-left: 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+  }
+  .wa-join-steps li { margin-bottom: 4px; }
+  .wa-join-steps strong { color: var(--text); font-weight: 600; }
+  .wa-join-steps code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface-2);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+  }
+
   .wa-step {
     display: grid;
     grid-template-columns: 28px 1fr;
@@ -2482,6 +2528,18 @@
       </div>
       <button type="button" class="wa-save-btn" id="waPageSaveBtn" onclick="saveWhatsAppFromPage()">SAVE & SEND WELCOME</button>
       <div class="wa-status-line" id="waPageStatus">NOT CONNECTED</div>
+
+      <div class="wa-join-card" id="waJoinCard">
+        <div class="wa-join-head">ALMOST THERE — ONE QUICK STEP</div>
+        <p class="wa-join-body">We couldn't send the welcome message because your WhatsApp hasn't said hello to Lift.Log yet. Do this once:</p>
+        <ol class="wa-join-steps">
+          <li>Open <strong>WhatsApp</strong></li>
+          <li>Send a message to <strong>+1 415 523 8886</strong></li>
+          <li>Type just this: <code>join eleven-say</code></li>
+          <li>You'll get a reply saying you're set up</li>
+          <li>Come back here and tap <strong>SAVE & SEND WELCOME</strong> again</li>
+        </ol>
+      </div>
     </div>
 
     <div class="wa-section">
@@ -4618,7 +4676,17 @@
     const input = document.getElementById('waPageNumber');
     if (input) input.value = num;
     setWaPageStatus(num ? 'CONNECTED' : 'NOT CONNECTED', num ? 'connected' : '');
+    hideWaJoinCard();
     document.getElementById('whatsappPage').classList.add('active');
+  }
+
+  function showWaJoinCard() {
+    const el = document.getElementById('waJoinCard');
+    if (el) el.classList.add('show');
+  }
+  function hideWaJoinCard() {
+    const el = document.getElementById('waJoinCard');
+    if (el) el.classList.remove('show');
   }
 
   function closeWhatsAppPage() {
@@ -4651,6 +4719,7 @@
 
     saveBtn.disabled = true;
     setWaPageStatus('SAVING…', '');
+    hideWaJoinCard();
 
     // Send welcome message via Worker
     try {
@@ -4662,7 +4731,10 @@
       if (!res.ok) throw new Error('worker ' + res.status);
       setWaPageStatus('CONNECTED · WELCOME MESSAGE SENT', 'connected');
     } catch (err) {
-      setWaPageStatus('CONNECTED · WELCOME FAILED (CHECK SANDBOX JOIN)', 'error');
+      // Most common cause: the user's WhatsApp hasn't joined the Twilio sandbox.
+      // Show the recovery card with exact steps instead of a cryptic error line.
+      setWaPageStatus('NUMBER SAVED · WELCOME NOT DELIVERED YET', 'error');
+      showWaJoinCard();
     } finally {
       saveBtn.disabled = false;
     }
