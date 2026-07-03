@@ -1151,6 +1151,14 @@
     text-align: center;
     padding: 8px 0;
   }
+  .log-day-note {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-dim);
+    padding: 0 8px 6px 34px;
+    word-break: break-word;
+  }
 
   /* Hero strip — big numbers + streak + last-session */
   .log-hero {
@@ -1368,6 +1376,13 @@
 
   /* Quick-log modal (centered, sits above the Monthly Log overlay) */
   #quickLogModal { align-items: center; z-index: 400; }
+  /* Log-gym modal shares the same over-overlay layer */
+  #logGymModal { align-items: center; z-index: 400; }
+  #logGymModal .lg-date {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: .1em; color: var(--accent);
+    margin: -6px 0 14px;
+  }
   #quickLogModal .modal { border-radius: 16px; width: 340px; max-width: 92vw; padding: 20px; animation: calFade 0.18s ease-out; }
   .ql-modal-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
   .ql-modal-emoji { font-size: 28px; line-height: 1; }
@@ -1979,6 +1994,131 @@
 
   .exercise.has-note .note-indicator { display: block; }
 
+  /* Per-exercise "next time" note — carries to the following session then clears */
+  .ex-note-block { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
+  .ex-lastnote {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--accent);
+    background: rgba(212, 255, 0, 0.08);
+    border: 1px solid rgba(212, 255, 0, 0.28);
+    border-radius: 8px;
+    padding: 7px 10px;
+    word-break: break-word;
+  }
+  .ex-note-btn {
+    width: 100%;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--text-dim);
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 7px 10px;
+    cursor: pointer;
+    word-break: break-word;
+    transition: border-color .15s, color .15s, background .15s;
+  }
+  .ex-note-btn.has { color: var(--text); border-style: solid; background: var(--surface); }
+  .ex-note-btn:active { transform: scale(0.99); }
+
+  /* Coaching accordion (Philip Nel · Bio — Option A) */
+  .coach-toggle {
+    width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 9px 12px; background: transparent; border: none; border-top: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase; cursor: pointer;
+  }
+  .coach-toggle .chev { transition: transform 0.2s; }
+  .exercise.open .coach-toggle { color: var(--accent); }
+  .exercise.open .coach-toggle .chev { transform: rotate(90deg); }
+  .coach-panel {
+    display: none; flex-direction: column; gap: 11px;
+    padding: 12px 14px 14px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.18);
+  }
+  .exercise.open .coach-panel { display: flex; }
+  .coach-setup {
+    font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: var(--text-dim);
+    letter-spacing: 0.02em; line-height: 1.5;
+  }
+  .coach-focus { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .coach-focus li { position: relative; padding-left: 15px; font-size: 12.5px; line-height: 1.4; color: var(--text); }
+  .coach-focus li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
+  .coach-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+  .coach-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid rgba(212,255,0,0.3); background: rgba(212,255,0,0.07);
+    border-radius: 6px; padding: 4px 8px;
+  }
+  .coach-goal { font-size: 11.5px; line-height: 1.45; color: var(--text-dim); border-left: 2px solid var(--accent); padding-left: 10px; }
+  .coach-edit {
+    align-self: flex-start; margin-top: 2px; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.12em;
+    padding: 6px 10px; border-radius: 7px; cursor: pointer;
+  }
+  .coach-add {
+    display: block; width: 100%; padding: 9px; background: transparent; border: none; border-top: 1px solid var(--border);
+    color: var(--text-dim); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em;
+    text-transform: uppercase; cursor: pointer; text-align: center;
+  }
+  .coach-ex-name {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent);
+    letter-spacing: 0.04em; margin: -6px 0 14px;
+  }
+  .modal-hint {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim);
+    line-height: 1.4; margin: -4px 0 4px;
+  }
+  textarea.modal-input { resize: vertical; min-height: 44px; line-height: 1.45; }
+
+  /* Last-session strip (top of workout list) */
+  .last-session-strip {
+    display: flex; align-items: center; gap: 8px;
+    margin: 0 0 12px; padding: 10px 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .last-session-strip .lss-key { font-size: 9px; letter-spacing: .12em; color: var(--text-dim); }
+  .last-session-strip .lss-val { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .06em; }
+  .last-session-strip .lss-sep { color: var(--text-dim); }
+  .last-session-strip .lss-meta { font-size: 11px; color: var(--text-dim); letter-spacing: .05em; margin-left: auto; white-space: nowrap; }
+
+  /* Session stopwatch bar (in header, below session tabs) */
+  .stopwatch-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px;
+  }
+  .stopwatch-bar .sw-main {
+    display: flex; align-items: center; gap: 10px;
+    flex: 1;
+    padding: 8px 14px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .stopwatch-bar.running .sw-main { border-color: var(--accent); background: rgba(212, 255, 0, 0.06); }
+  .stopwatch-bar .sw-icon { font-size: 12px; color: var(--accent); width: 16px; text-align: center; }
+  .stopwatch-bar .sw-time {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px; font-weight: 700; letter-spacing: .06em;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .stopwatch-bar .sw-reset {
+    padding: 8px 12px;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: .1em; color: var(--text-dim);
+    cursor: pointer;
+  }
+  .stopwatch-bar .sw-reset:active { transform: scale(0.97); }
+
   /* Long-press feedback */
   .exercise.long-press-feedback {
     transform: scale(0.98);
@@ -2281,6 +2421,13 @@
     </div>
   </div>
   <div class="session-tabs" id="sessionTabs"></div>
+  <div class="stopwatch-bar" id="stopwatchBar">
+    <button type="button" class="sw-main" id="swToggle" onclick="toggleStopwatch()" aria-label="Start or pause session timer">
+      <span class="sw-icon" id="swIcon">▶</span>
+      <span class="sw-time" id="swTime">0:00</span>
+    </button>
+    <button type="button" class="sw-reset" id="swReset" onclick="resetStopwatch()" aria-label="Reset session timer">RESET</button>
+  </div>
   <span id="sessionNum" style="display:none">1</span>
   <span id="freqDisplay" style="display:none"></span>
   <span id="completedCount" style="display:none"></span>
@@ -2303,6 +2450,8 @@
 
 <div class="container">
 
+<div id="lastSessionStrip" class="last-session-strip" style="display:none;"></div>
+
 <div id="sessionCompleteBar" class="session-complete-bar" style="display:none;">
     <div class="scb-info">
       <div class="scb-title" id="scbTitle">SESSION COMPLETE</div>
@@ -2322,11 +2471,28 @@
   <div class="modal">
     <h3>ADD EXERCISE</h3>
     <input type="text" class="modal-input" id="newExerciseName" placeholder="Exercise name">
-    <input type="text" class="modal-input" id="newExerciseMeta" placeholder="Sets x reps (e.g. 4 x 15)">
-    <input type="number" class="modal-input" id="newExerciseWeight" placeholder="Weight (kg)" step="0.5">
+    <input type="text" class="modal-input" id="newExerciseMeta" placeholder="Sets / reps / dose (e.g. 4 x 15)">
+    <input type="number" class="modal-input" id="newExerciseWeight" placeholder="Weight in kg — blank = bodyweight" step="0.5">
+    <div class="modal-hint">Add coaching cues after — tap ✎ on the card in edit mode.</div>
     <div class="modal-buttons">
       <button class="modal-btn" onclick="closeModal('addExerciseModal')">CANCEL</button>
       <button class="modal-btn primary" onclick="saveNewExercise()">ADD</button>
+    </div>
+  </div>
+</div>
+
+<!-- Coaching Notes Editor -->
+<div class="modal-backdrop" id="coachModal">
+  <div class="modal">
+    <h3>COACHING NOTES</h3>
+    <div class="coach-ex-name" id="coachExName">—</div>
+    <input type="text" class="modal-input" id="coachSetup" placeholder="Setup — e.g. Feet on the wall · hips & knees at 90°">
+    <textarea class="modal-input" id="coachFocus" rows="4" placeholder="Focus cues — one per line"></textarea>
+    <input type="text" class="modal-input" id="coachTags" placeholder="Targets — comma separated (e.g. Left glute, Balance)">
+    <textarea class="modal-input" id="coachGoal" rows="2" placeholder="Goal (optional)"></textarea>
+    <div class="modal-buttons">
+      <button class="modal-btn" onclick="closeModal('coachModal')">CANCEL</button>
+      <button class="modal-btn primary" onclick="saveCoachEditor()">SAVE</button>
     </div>
   </div>
 </div>
@@ -2393,11 +2559,11 @@
   <div class="notes-drawer">
     <div class="notes-grabber"></div>
     <div class="notes-header">
-      <div class="notes-label">NOTES FOR</div>
+      <div class="notes-label">NOTE FOR NEXT SESSION</div>
       <div class="notes-title" id="notesTitle">—</div>
     </div>
     <div class="notes-body">
-      <textarea class="notes-textarea" id="notesTextarea" placeholder="Form cue, weight progression, body feedback…"></textarea>
+      <textarea class="notes-textarea" id="notesTextarea" placeholder="e.g. try starting on 8kg next time…"></textarea>
       <div class="notes-meta" id="notesMeta"></div>
     </div>
     <div class="notes-footer">
@@ -2452,6 +2618,20 @@
   </div>
 </div>
 
+<!-- Log Gym Session Modal (from the calendar) -->
+<div class="modal-backdrop" id="logGymModal">
+  <div class="modal">
+    <h3>LOG GYM SESSION</h3>
+    <div class="lg-date" id="lgDateLabel">TODAY</div>
+    <select class="modal-select" id="lgType" onchange="populateLgSessions()"></select>
+    <select class="modal-select" id="lgSession" style="margin-top:10px;"></select>
+    <div class="modal-buttons" style="margin-top:14px;">
+      <button class="modal-btn" onclick="closeModal('logGymModal')">CANCEL</button>
+      <button class="modal-btn primary" onclick="saveLogGym()">LOG</button>
+    </div>
+  </div>
+</div>
+
 <!-- Workout Type Picker Modal -->
 <div class="modal-backdrop" id="workoutTypeModal">
   <div class="modal">
@@ -2500,6 +2680,7 @@
   <div class="log-quicklog">
     <div class="log-quicklog-title">LOG ACTIVITY</div>
     <div class="log-quicklog-grid">
+      <button type="button" class="ql-tile" onclick="openLogGym()"><span class="ql-emoji">🏋️</span><span class="ql-label">GYM</span></button>
       <button type="button" class="ql-tile" onclick="openQuickLog('swim')"><span class="ql-emoji">🌊</span><span class="ql-label">SWIM</span></button>
       <button type="button" class="ql-tile" onclick="openQuickLog('cycle')"><span class="ql-emoji">🚴</span><span class="ql-label">CYCLE</span></button>
       <button type="button" class="ql-tile" onclick="openQuickLog('hike')"><span class="ql-emoji">🥾</span><span class="ql-label">HIKE</span></button>
@@ -2766,7 +2947,209 @@
     { id: 'r10-s3', name: 'Triceps Extension',         meta: '3 sets · Arms',      weight: 0, done: false }
   ];
 
+  // ---- Philip Nel · Bio (rehab / movement program) ----
+  // Detail-rich physio work. Exercises carry coaching fields (setup / focus / tags / goal)
+  // and most are bodyweight (unit:'body' → no weight control). Philip's full programme is
+  // Day 1; Days 2 & 3 are left empty to fill in later. All seeded content is editable in-app.
+  const PHILIP_WORKOUT_ID = 'philip-bio';
+
+  // Breathing reset block that opens the session (Philip's section 1). Kept as a factory so
+  // the id suffix stays unique if it's ever reused on another day.
+  function pnReset(sfx) {
+    return [
+      { id: 'pn-9090-' + sfx, name: '90/90 Breathing', meta: '3 rounds × 4 breaths', weight: 0, unit: 'body', done: false,
+        setup: 'Feet on the wall · hips & knees at 90°',
+        focus: ['Long exhale (5–6 sec)', 'Feel the ribs come down', 'Quiet nasal inhale', 'Expand into the right lower ribs', 'Relax the jaw and neck'],
+        tags: ['Diaphragm', 'Right rib'] },
+      { id: 'pn-rib-' + sfx, name: 'Sidelying Right Rib Expansion', meta: '2 × 5 breaths', weight: 0, unit: 'body', done: false,
+        setup: 'Lie on your left side, right hand on the lower ribs',
+        focus: ['Think about breathing into the floor'],
+        tags: ['Rib expansion'],
+        goal: 'Improve right posterior rib expansion and diaphragm mobility.' },
+      { id: 'pn-rock-' + sfx, name: 'Quadruped Rockbacks', meta: '2 × 8', weight: 0, unit: 'body', done: false,
+        setup: 'Hands under shoulders',
+        focus: ['Exhale as you sit back', 'Maintain a long spine'],
+        goal: 'Reduce extension through the lower back and reconnect breathing with movement.' },
+      { id: 'pn-found-' + sfx, name: 'Founder with Rotation', meta: '30 sec each side', weight: 0, unit: 'body', done: false,
+        setup: 'Founder position — reach one arm up and rotate gently',
+        tags: ['Adductors', 'T-spine', 'Rib mobility', 'Hip flexors'] }
+    ];
+  }
+
+  const PHILIP_UPPER = [
+    { id: 'pn-pend', name: 'Pendulum Swings', meta: '15 reps each direction · 2 rounds', weight: 5, done: false,
+      setup: 'Forward/back · side-to-side · circles',
+      focus: ['Let the shoulder blade move freely'],
+      goal: 'Restore smooth scapular mechanics.' },
+    { id: 'pn-punch', name: 'Banded Punch with Step', meta: '12 each side · 2 rounds', weight: 0, unit: 'body', done: false,
+      setup: 'Small step forward as you punch',
+      focus: ['Reach through the shoulder blade', 'Avoid shrugging'],
+      tags: ['Serratus', 'Rotation', 'Core'] },
+    { id: 'pn-incline', name: 'Incline Push-ups', meta: '8–10 · 2 rounds', weight: 0, unit: 'body', done: false,
+      setup: 'Slightly lower height than before',
+      focus: ['Long neck', 'Ribs down', 'Controlled scapular movement'] },
+    { id: 'pn-wallslide', name: 'Wall Slides with Lift-Off', meta: '2 × 10', weight: 0, unit: 'body', done: false,
+      setup: 'Back against wall · slide overhead',
+      focus: ['Lift hands slightly off the wall', 'Pause', 'Return'],
+      tags: ['Lower traps', 'Serratus', 'Overhead'] },
+    { id: 'pn-ohhold', name: 'Single Arm Overhead Hold', meta: '2 × 20 sec', weight: 5, done: false,
+      setup: 'Stand tall',
+      focus: ['Neutral pelvis', 'Stacked ribs', 'Relaxed neck', 'No lower-back arching'] },
+    { id: 'pn-beartap', name: 'Bear Shoulder Taps', meta: '2 × 10 each', weight: 0, unit: 'body', done: false,
+      setup: 'Knees hovering',
+      focus: ['Slow alternating taps', 'Minimal trunk movement'],
+      goal: 'Improve shoulder and trunk stability.' },
+    { id: 'pn-chimp', name: 'Chimpanzee Side Walks', meta: 'Steady, controlled', weight: 0, unit: 'body', done: false,
+      focus: ['Hold posture while challenging scapular control through movement'] },
+    { id: 'pn-wyraise', name: 'Prone W-Y Raises', meta: '2 × 10', weight: 2, done: false,
+      setup: 'Slow lift · pause · controlled lowering',
+      tags: ['Lower traps', 'Posterior shoulder', 'Mid-back'] }
+  ];
+
+  const PHILIP_LOWER = [
+    { id: 'pn-sldl', name: 'Single Leg Deadlift', meta: '8 each side · 2–3 rounds', weight: 10, done: false,
+      setup: 'Tripod foot · push the hips back',
+      focus: ['Keep the tripod foot planted', 'Hips travel backward, not down', 'Extra focus on left-glute recruitment'],
+      tags: ['Left glute', 'Hip hinge', 'Balance'] },
+    { id: 'pn-abduct', name: 'Banded Abduction', meta: '20 reps', weight: 0, unit: 'body', done: false,
+      focus: ['Continuous tension', 'Pelvis level', 'No side bending'] },
+    { id: 'pn-stepup', name: 'Step-Up with Knee Drive', meta: '10 each side', weight: 0, unit: 'body', done: false,
+      setup: 'Add a calf raise at the top',
+      focus: ['Pause 2 sec at the top', 'Drive through the big toe'],
+      goal: 'Improve left-hip force production and foot mechanics.' },
+    { id: 'pn-stepdown', name: 'Lateral Step Downs', meta: '8 each side', weight: 0, unit: 'body', done: false,
+      setup: 'Slow lowering',
+      focus: ['Tap the heel lightly', 'Return under control'],
+      tags: ['Knee control', 'Glute med', 'Frontal plane'] },
+    { id: 'pn-curtsy', name: 'Curtsy Reach Lunge', meta: '8 each side', weight: 0, unit: 'body', done: false,
+      setup: 'Reach across the body · return tall',
+      tags: ['Adductors', 'Hip stability', 'Rotation'] },
+    { id: 'pn-copen', name: 'Modified Copenhagen Hold', meta: '15 sec holds, then 2 × 10 lifts', weight: 0, unit: 'body', done: false,
+      setup: 'Top knee supported · lift the pelvis',
+      focus: ['Maintain alignment'],
+      tags: ['Left adductor', 'Pelvic control'] },
+    { id: 'pn-shortfoot', name: 'Short Foot Activation', meta: '5 × 5 sec holds', weight: 0, unit: 'body', done: false,
+      focus: ['Create the arch', 'Keep toes relaxed', 'No gripping'] },
+    { id: 'pn-toeyoga', name: 'Toe Yoga', meta: '10 reps', weight: 0, unit: 'body', done: false,
+      focus: ['Lift the big toe only, then lower', 'Lift the other four toes', 'Alternate'],
+      goal: 'Improve intrinsic foot control.' },
+    { id: 'pn-slbalance', name: 'Single Leg Balance + Head Turns', meta: '30 sec', weight: 0, unit: 'body', done: false,
+      focus: ['Stand tall', 'Slow head movement', 'Maintain pressure through the big toe'] },
+    { id: 'pn-heelraise', name: 'Heel Raise with Ball Squeeze', meta: '12 reps', weight: 0, unit: 'body', done: false,
+      setup: 'Ball between the heels',
+      focus: ['Rise slowly', 'Lower slowly'],
+      tags: ['Medial chain', 'Foot stability', 'Arch'] }
+  ];
+
+  const PHILIP_CORE = [
+    { id: 'pn-pogo', name: 'Assisted Single Leg Pogos', meta: '15 reps', weight: 0, unit: 'body', done: false,
+      setup: 'Light support if needed',
+      focus: ['Quick contacts', 'Stay springy'] },
+    { id: 'pn-lathop', name: 'Rhythm Lateral Hops', meta: '15 sec', weight: 0, unit: 'body', done: false,
+      focus: ['Continuous rhythm', 'Light feet', 'Quiet landings'],
+      goal: 'Improve elastic capacity while maintaining alignment.' },
+    { id: 'pn-deadbug', name: 'Dead Bugs', meta: '10 each · 2 rounds', weight: 0, unit: 'body', done: false,
+      focus: ['Controlled breathing', 'Slow movement'] },
+    { id: 'pn-sideplank', name: 'Side Plank + Abduction', meta: '8 each · 2 rounds', weight: 0, unit: 'body', done: false,
+      focus: ['Lift from the glute', 'Maintain pelvic control'] },
+    { id: 'pn-revcrunch', name: 'Reverse Crunch + Reach', meta: '12 · 2 rounds', weight: 0, unit: 'body', done: false,
+      setup: 'Arms overhead',
+      focus: ['Controlled lowering'] },
+    { id: 'pn-boat', name: 'High Boat / Low Boat', meta: '25 sec · 2 rounds', weight: 0, unit: 'body', done: false,
+      focus: ['Steady breathing', 'No neck tension'] },
+    { id: 'pn-pallof', name: 'Tall Kneeling Pallof Rotation', meta: '10 each · 2 rounds', weight: 0, unit: 'body', done: false,
+      setup: 'Small rotation · controlled return',
+      focus: ['Focus on resisting the movement'] },
+    { id: 'pn-finish', name: 'Supine Breathing · Feet Elevated', meta: '5 slow breaths', weight: 0, unit: 'body', done: false,
+      setup: 'One hand on the abdomen, one on the right lower ribs',
+      focus: ['Soft jaw', 'Relaxed neck', 'Expand the right ribs', 'Longer exhalations'],
+      goal: 'Bring the nervous system back down.' }
+  ];
+
+  // ---- Philip Nel · Bio — Day 2: Upper Body ----
+  const PUB_WARMUP = [
+    { id: 'pu-kb', name: 'Kettlebell Swings', meta: '20x each pattern · per arm', weight: 12, done: false,
+      setup: 'Shoulder warm-up · dumbbell or 5kg as a lighter option',
+      focus: ['20× clockwise', '20× anti-clockwise', '20× in front, left to right', 'Repeat for left arm & right arm'],
+      tags: ['Shoulders', 'Warm-up'] },
+    { id: 'pu-shrug', name: 'Shrug Shoulder Rolls', meta: '20x front · 20x back', weight: 5, done: false,
+      focus: ['Front "shrug" shoulder roll — 20×', 'Back "shrug" shoulder roll — 20×'],
+      tags: ['Traps'] }
+  ];
+  const PUB_RAISES = [
+    { id: 'pu-sideraise', name: 'Side Raise (slightly behind)', meta: '10x · 2 rounds', weight: 0, done: false,
+      focus: ['Raise slightly behind the body'] },
+    { id: 'pu-frontraise', name: 'Front Raise (single arm)', meta: '10x · 2 rounds', weight: 0, done: false,
+      focus: ['One arm at a time'] },
+    { id: 'pu-press', name: 'Shoulder Press (slightly forward)', meta: '10x · 2 rounds', weight: 0, done: false,
+      focus: ['Press up and slightly forward'] },
+    { id: 'pu-wfly', name: 'W-Flys', meta: '2 rounds', weight: 0, done: false,
+      focus: ['Push back into the forward position'],
+      tags: ['Rear delts', 'Scapula'] }
+  ];
+  const PUB_BAND = [
+    { id: 'pu-band40', name: '40lb Band Sequence', meta: 'Right arm, then left', weight: 0, unit: 'body', done: false,
+      setup: 'Lie down, hold the band upright · left side facing the band connection',
+      focus: ['90° vertical to horizontal', '90° hold — lift head and knees to chest', '90° hold both hands — legs forward, knees bent', 'Rotate the torso to the right', 'Left arm (tighter band): horizontal to 90°', 'Turn 180° — lift right arm horizontal to 90°', 'Repeat on the left arm'],
+      tags: ['Band', 'Rotation', 'Core'] },
+    { id: 'pu-pallof', name: 'Pallof Press', meta: '10x each side', weight: 0, unit: 'body', done: false,
+      setup: 'Knees bent · hips pushed back',
+      tags: ['Anti-rotation', 'Core'] },
+    { id: 'pu-bandoh', name: 'Band Overhead → Horizontal', meta: '10x L&R', weight: 0, unit: 'body', done: false,
+      setup: 'Lie down, feet facing the band connection',
+      focus: ['90° to overhead — 10× L&R', 'Tighten band, head facing the connection', '90° to horizontal — 10× L&R'] }
+  ];
+  const PUB_BOSU = [
+    { id: 'pu-bosufist', name: 'Bosu Fist Press', meta: '10 long secs · L&R', weight: 0, unit: 'body', done: false,
+      setup: 'Bosu ball at 90°',
+      focus: ['Hold ~10 long seconds each side'],
+      tags: ['Stability'] },
+    { id: 'pu-bosuside', name: 'Bosu Side Presses', meta: '10x each side', weight: 0, unit: 'body', done: false,
+      setup: 'Straight arms',
+      focus: ['Side presses — press and release'] }
+  ];
+  const PUB_FINISH = [
+    { id: 'pu-plankrow', name: 'Single-Arm Plank Rows', meta: '10–12 each · 2 rounds', weight: 0, done: false,
+      setup: 'Plank pull-up · dumbbell in each hand',
+      tags: ['Back', 'Core'] },
+    { id: 'pu-halfmoon', name: 'Banded Half-Moon Walk', meta: '2 rounds', weight: 0, unit: 'body', done: false,
+      setup: 'Loop band around the wrists',
+      focus: ['Walk a half-moon arc'],
+      tags: ['Shoulders', 'Band'] }
+  ];
+  const PUB_PUSHUP = [
+    { id: 'pu-pushup', name: 'Push-ups (negative & positive)', meta: 'To fatigue', weight: 0, unit: 'body', done: false,
+      setup: 'Torso horizontal to the floor',
+      focus: ['Full negative and positive rep'] },
+    { id: 'pu-pushupneg', name: 'Negative-to-Knees Push-ups', meta: 'To fatigue', weight: 0, unit: 'body', done: false,
+      focus: ['Negative push-up (fall)', 'Drop to a knees push-up'] }
+  ];
+
   const DEFAULT_WORKOUT_TYPES = {
+    'philip-bio': {
+      id: 'philip-bio',
+      name: 'Philip Nel · Bio',
+      sessions: {
+        1: { name: 'FULL BODY', groups: [
+          { id: 'pn-d1-reset', name: 'RESET & BREATHING', exercises: pnReset('d1') },
+          { id: 'pn-d1-upper', name: 'SCAPULA & UPPER BODY', exercises: PHILIP_UPPER },
+          { id: 'pn-d1-hip', name: 'LEFT HIP & LOWER BODY', exercises: PHILIP_LOWER.slice(0, 6) },
+          { id: 'pn-d1-foot', name: 'FOOT & ANKLE', exercises: PHILIP_LOWER.slice(6) },
+          { id: 'pn-d1-elastic', name: 'ELASTIC CAPACITY', exercises: PHILIP_CORE.slice(0, 2) },
+          { id: 'pn-d1-core', name: 'CORE INTEGRATION', exercises: PHILIP_CORE.slice(2, 7) },
+          { id: 'pn-d1-finish', name: 'FINISH', exercises: PHILIP_CORE.slice(7) }
+        ] },
+        2: { name: 'UPPER BODY', groups: [
+          { id: 'pu-warmup', name: 'SHOULDER WARM-UP', exercises: PUB_WARMUP },
+          { id: 'pu-raises', name: 'RAISES / PRESS CIRCUIT', exercises: PUB_RAISES },
+          { id: 'pu-band', name: '40LB BAND WORK', exercises: PUB_BAND },
+          { id: 'pu-bosu', name: 'BOSU BALL', exercises: PUB_BOSU },
+          { id: 'pu-finishers', name: 'FINISHERS', exercises: PUB_FINISH },
+          { id: 'pu-pushups', name: 'PUSH-UPS', exercises: PUB_PUSHUP }
+        ] },
+        3: { name: 'DAY 3', groups: [] }
+      }
+    },
     'lift-log': {
       id: 'lift-log',
       name: "Darren's workout",
@@ -2803,6 +3186,7 @@
   const PREV_STORAGE_KEY = 'liftlog_v5';
   let state = loadState();
   resetTicksIfNewDay();
+  const openCoach = new Set();   // exercise ids whose coaching accordion is expanded
   let currentGroupForAdd = null;
   let currentLogMonth = monthKey(new Date());
   // Monthly-mirror filter: which workout type to show. Default to currently active type.
@@ -2947,6 +3331,32 @@
     return (wt && wt.name) || workoutTypeId;
   }
 
+  // Most recent logged lift across all months (by date). Returns the log entry or null.
+  function mostRecentLift() {
+    let best = null;
+    const log = state.log || {};
+    Object.keys(log).forEach(month => {
+      const arr = Array.isArray(log[month]) ? log[month] : [];
+      arr.forEach(e => {
+        if (!e || !e.date) return;
+        if (!best || e.date > best.date) best = e;
+      });
+    });
+    return best;
+  }
+
+  // "TODAY" / "YESTERDAY" / "3 DAYS AGO" / "12 JUN" for a YYYY-MM-DD key.
+  function relativeDayLabel(dateKey) {
+    const today = todayKey();
+    if (dateKey === today) return 'TODAY';
+    if (dateKey === daysAgo(1)) return 'YESTERDAY';
+    const a = new Date(dateKey + 'T00:00:00');
+    const b = new Date(today + 'T00:00:00');
+    const diff = Math.round((b - a) / 86400000);
+    if (diff >= 2 && diff <= 6) return diff + ' DAYS AGO';
+    return a.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).toUpperCase();
+  }
+
   // Make state.groups always return the active session's groups within the active workout type.
   // Keeps all existing read-side code working unchanged.
   function attachGroupsGetter(s) {
@@ -3080,6 +3490,11 @@
       s.workoutTypes[ROBS_WORKOUT_ID] = JSON.parse(JSON.stringify(DEFAULT_WORKOUT_TYPES[ROBS_WORKOUT_ID]));
       s.meta.seededRobsWorkout = true;
     }
+    // 3) Seed Philip Nel · Bio once (skip if user has already deleted it)
+    if (!s.workoutTypes[PHILIP_WORKOUT_ID] && !s.meta.seededPhilipBio) {
+      s.workoutTypes[PHILIP_WORKOUT_ID] = JSON.parse(JSON.stringify(DEFAULT_WORKOUT_TYPES[PHILIP_WORKOUT_ID]));
+      s.meta.seededPhilipBio = true;
+    }
 
     return attachGroupsGetter(s);
   }
@@ -3170,6 +3585,23 @@
       }
     }
 
+    // Last-session strip — most recent logged lift across all months
+    const lss = document.getElementById('lastSessionStrip');
+    if (lss) {
+      const last = mostRecentLift();
+      if (last) {
+        const sName = sessionNameFor(last.workoutType, last.sessionId);
+        lss.style.display = 'flex';
+        lss.innerHTML =
+          `<span class="lss-key">LAST</span>` +
+          `<span class="lss-val">${escapeHtml(sName)}</span>` +
+          `<span class="lss-sep">·</span>` +
+          `<span class="lss-meta">${escapeHtml(relativeDayLabel(last.date))}</span>`;
+      } else {
+        lss.style.display = 'none';
+      }
+    }
+
     const container = document.getElementById('groupsContainer');
     container.innerHTML = '';
 
@@ -3232,13 +3664,21 @@
           : (isLast ? '' : 'LINK ↓');
         const unit = ex.unit || 'kg';
         const isMin = unit === 'min';
+        const isBody = unit === 'body';   // bodyweight — no weight control
         // Main +/- step (was bigStep, now matches what was smallStep)
         const step = isMin ? 0.25 : 0.5;
         const stepLabel = isMin ? '15s' : '0.5';
-        const unitLabel = isMin ? 'MIN' : 'KG';
+        const unitLabel = isMin ? 'MIN' : isBody ? 'BODY' : 'KG';
+        // Coaching detail (Philip Nel · Bio). Accordion shows only when there's content.
+        const focusArr = Array.isArray(ex.focus) ? ex.focus.filter(x => x && x.trim()) : [];
+        const tagsArr = Array.isArray(ex.tags) ? ex.tags.filter(x => x && x.trim()) : [];
+        const hasCoaching = !!(ex.setup && ex.setup.trim()) || focusArr.length > 0 || tagsArr.length > 0 || !!(ex.goal && ex.goal.trim());
         const exEl = document.createElement('div');
-        const hasNote = !!(ex.note && ex.note.trim());
-        exEl.className = 'exercise' + (ex.done ? ' done' : '') + (hasNote ? ' has-note' : '');
+        const pendingNote = (ex.note && ex.note.trim()) ? ex.note.trim() : '';
+        const carriedNote = (ex.lastNote && ex.lastNote.trim()) ? ex.lastNote.trim() : '';
+        const hasNote = !!(pendingNote || carriedNote);
+        exEl.className = 'exercise' + (ex.done ? ' done' : '') + (hasNote ? ' has-note' : '')
+          + (hasCoaching && openCoach.has(ex.id) ? ' open' : '');
         exEl.dataset.gid = group.id;
         exEl.dataset.eid = ex.id;
         exEl.innerHTML = `
@@ -3259,7 +3699,7 @@
                 value="${escapeAttr(ex.meta || '')}" 
                 onchange="updateExerciseField('${group.id}','${ex.id}','meta',this.value)">
             </div>
-            <div class="weight-control">
+            ${isBody ? '' : `<div class="weight-control">
               <button type="button" class="weight-btn"
                 onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',-${step})"
                 onpointerup="endWeightHold('${group.id}','${ex.id}',-${step})"
@@ -3272,13 +3712,26 @@
                 onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',${step})"
                 onpointerup="endWeightHold('${group.id}','${ex.id}',${step})"
                 onpointercancel="cancelWeightHold()">+</button>
-            </div>
+            </div>`}
           </div>
           <div class="exercise-actions edit-only-actions">
             ${linkLabel ? `<button class="action-btn link-btn ${ex.supersetId ? 'linked' : ''}" onclick="toggleSuperset('${group.id}','${ex.id}')">${linkLabel}</button>` : '<div class="action-btn-spacer"></div>'}
             <button class="action-btn unit-btn" onclick="toggleUnit('${group.id}','${ex.id}')">${unitLabel}</button>
           </div>
+          ${hasCoaching ? `
+          <button type="button" class="coach-toggle" onclick="toggleCoach('${ex.id}',this)"><span>Coaching notes</span><span class="chev">›</span></button>
+          <div class="coach-panel">
+            ${ex.setup && ex.setup.trim() ? `<div class="coach-setup">${escapeHtml(ex.setup)}</div>` : ''}
+            ${focusArr.length ? `<ul class="coach-focus">${focusArr.map(ff => `<li>${escapeHtml(ff)}</li>`).join('')}</ul>` : ''}
+            ${tagsArr.length ? `<div class="coach-tags">${tagsArr.map(tt => `<span class="coach-tag">${escapeHtml(tt)}</span>`).join('')}</div>` : ''}
+            ${ex.goal && ex.goal.trim() ? `<div class="coach-goal">${escapeHtml(ex.goal)}</div>` : ''}
+            <button type="button" class="coach-edit edit-only-actions" onclick="openCoachEditor('${group.id}','${ex.id}')">✎ EDIT COACHING</button>
+          </div>` : `<button type="button" class="coach-add edit-only-actions" onclick="openCoachEditor('${group.id}','${ex.id}')">＋ COACHING NOTES</button>`}
           ${inSuperset ? '' : `<button class="done-bar ${ex.done ? 'active' : ''}" onclick="toggleDone('${group.id}','${ex.id}')">${ex.done ? '✓ DONE' : 'MARK DONE'}</button>`}
+          <div class="ex-note-block">
+            ${carriedNote ? `<div class="ex-lastnote">↩ LAST TIME · ${escapeHtml(carriedNote)}</div>` : ''}
+            <button type="button" class="ex-note-btn${pendingNote ? ' has' : ''}" onclick="openNotes('${group.id}','${ex.id}')">${pendingNote ? '📝 ' + escapeHtml(pendingNote) : '＋ note for next time'}</button>
+          </div>
         `;
         return exEl;
       };
@@ -3413,14 +3866,16 @@
     const sessionId = parseInt(state.meta.session, 10);
     if (!Array.isArray(state.log[month])) state.log[month] = [];
 
-    // Snapshot current weights
+    // Snapshot current weights (+ any "next time" note written this session)
     const weights = {};
     state.groups.forEach(g => g.exercises.forEach(e => {
-      weights[e.id] = {
+      const w = {
         name: e.name,
         weight: parseFloat(e.weight) || 0,
         unit: e.unit || 'kg'
       };
+      if (e.note && e.note.trim()) w.note = e.note.trim();
+      weights[e.id] = w;
     }));
 
     // Dedupe: only one entry per (workoutType, sessionId, date)
@@ -3431,6 +3886,14 @@
     );
     if (!exists) {
       state.log[month].push({ workoutType, sessionId, date, weights });
+      // Carry notes forward: the note written this session becomes the "LAST TIME"
+      // context shown on the NEXT session, then the working note is cleared so it
+      // only ever surfaces for one following session.
+      state.groups.forEach(g => g.exercises.forEach(e => {
+        const pending = (e.note && e.note.trim()) ? e.note.trim() : '';
+        if (pending) e.lastNote = pending; else delete e.lastNote;
+        delete e.note;
+      }));
     }
     saveState();
 
@@ -3539,6 +4002,14 @@
             <button type="button" class="log-day-del" aria-label="Unlog"
               onclick="deleteDayLift('${escapeAttr(e.workoutType)}', ${parseInt(e.sessionId, 10)}, '${escapeAttr(e.date)}')">×</button>
           </div>`;
+        // Any "next time" notes captured with this session
+        if (e.weights && typeof e.weights === 'object') {
+          Object.values(e.weights).forEach(w => {
+            if (w && typeof w.note === 'string' && w.note.trim()) {
+              body += `<div class="log-day-note">📝 ${escapeHtml((w.name ? w.name + ': ' : '') + w.note)}</div>`;
+            }
+          });
+        }
       });
       acts.forEach(e => {
         const bucket = (e && e.type === 'bio') ? 'bio' : bucketForActivity(e && e.activity);
@@ -3757,7 +4228,8 @@
     const ex = g.exercises.find(e => e.id === eId);
     if (!ex) return;
     const current = ex.unit || 'kg';
-    ex.unit = current === 'kg' ? 'min' : 'kg';
+    // Cycle KG → MIN → BODY (bodyweight, no weight tracked) → KG
+    ex.unit = current === 'kg' ? 'min' : current === 'min' ? 'body' : 'kg';
     saveState();
     render();
     if (navigator.vibrate) navigator.vibrate(10);
@@ -4152,14 +4624,58 @@
     const name = document.getElementById('newExerciseName').value.trim();
     if (!name) return;
     const meta = document.getElementById('newExerciseMeta').value.trim();
-    const weight = parseFloat(document.getElementById('newExerciseWeight').value) || 0;
-    
+    const wRaw = document.getElementById('newExerciseWeight').value.trim();
+
     const g = state.groups.find(g => g.id === currentGroupForAdd);
     if (!g) return;
-    g.exercises.push({ id: uid(), name, meta, weight, done: false });
+    // Blank weight → bodyweight (no weight control). Otherwise a kg-tracked exercise.
+    const ex = (wRaw === '')
+      ? { id: uid(), name, meta, weight: 0, unit: 'body', done: false }
+      : { id: uid(), name, meta, weight: parseFloat(wRaw) || 0, done: false };
+    g.exercises.push(ex);
     saveState();
     render();
     closeModal('addExerciseModal');
+  }
+
+  // ---------- Coaching editor (setup / focus / targets / goal) ----------
+  let coachEditTarget = null;
+  function toggleCoach(eid, btn) {
+    const card = btn.closest('.exercise');
+    if (!card) return;
+    const open = card.classList.toggle('open');
+    if (open) openCoach.add(eid); else openCoach.delete(eid);
+    if (navigator.vibrate) navigator.vibrate(6);
+  }
+  function openCoachEditor(gId, eId) {
+    const ex = findExercise(gId, eId);
+    if (!ex) return;
+    coachEditTarget = { gId, eId };
+    document.getElementById('coachExName').textContent = ex.name;
+    document.getElementById('coachSetup').value = ex.setup || '';
+    document.getElementById('coachFocus').value = Array.isArray(ex.focus) ? ex.focus.join('\n') : '';
+    document.getElementById('coachTags').value = Array.isArray(ex.tags) ? ex.tags.join(', ') : '';
+    document.getElementById('coachGoal').value = ex.goal || '';
+    document.getElementById('coachModal').classList.add('active');
+    setTimeout(() => document.getElementById('coachSetup').focus(), 100);
+  }
+  function saveCoachEditor() {
+    if (!coachEditTarget) return;
+    const ex = findExercise(coachEditTarget.gId, coachEditTarget.eId);
+    if (!ex) return;
+    const setup = document.getElementById('coachSetup').value.trim();
+    const focus = document.getElementById('coachFocus').value.split('\n').map(s => s.trim()).filter(Boolean);
+    const tags = document.getElementById('coachTags').value.split(',').map(s => s.trim()).filter(Boolean);
+    const goal = document.getElementById('coachGoal').value.trim();
+    if (setup) ex.setup = setup; else delete ex.setup;
+    if (focus.length) ex.focus = focus; else delete ex.focus;
+    if (tags.length) ex.tags = tags; else delete ex.tags;
+    if (goal) ex.goal = goal; else delete ex.goal;
+    openCoach.add(coachEditTarget.eId);   // keep it expanded so the edit is visible
+    saveState();
+    render();
+    closeModal('coachModal');
+    if (navigator.vibrate) navigator.vibrate(10);
   }
 
   function openAddGroupModal() {
@@ -4247,7 +4763,8 @@
       schemaVersion: 6,
       meta: state.meta,
       workoutTypes: state.workoutTypes,
-      log: state.log
+      log: state.log,
+      activityLog: state.activityLog || {}
     };
     const blob = new Blob([JSON.stringify(toExport, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -4284,6 +4801,18 @@
     };
     if (typeof e.unit === 'string') out.unit = clipStr(e.unit, 16);
     if (typeof e.note === 'string') out.note = clipStr(e.note, 2000);
+    if (typeof e.lastNote === 'string') out.lastNote = clipStr(e.lastNote, 2000);
+    // Coaching detail (Philip Nel · Bio and any richly-annotated exercise)
+    if (typeof e.setup === 'string' && e.setup.trim()) out.setup = clipStr(e.setup, 400);
+    if (Array.isArray(e.focus)) {
+      const f = e.focus.slice(0, 20).map(x => clipStr(x, 300)).filter(x => x && x.trim());
+      if (f.length) out.focus = f;
+    }
+    if (Array.isArray(e.tags)) {
+      const t = e.tags.slice(0, 12).map(x => clipStr(x, 60)).filter(x => x && x.trim());
+      if (t.length) out.tags = t;
+    }
+    if (typeof e.goal === 'string' && e.goal.trim()) out.goal = clipStr(e.goal, 600);
     if (typeof e.supersetId === 'string' && e.supersetId.length > 0) {
       out.supersetId = clipStr(e.supersetId, 64);
     }
@@ -4307,14 +4836,33 @@
       Object.keys(en.weights).slice(0, 200).forEach(k => {
         const w = en.weights[k];
         if (!w || typeof w !== 'object') return;
-        weights[clipStr(k, 64)] = {
+        const cleanW = {
           name: clipStr(w.name, 200),
           weight: clampNum(w.weight, 0, 100000, 0),
           unit: clipStr(w.unit, 16) || 'kg'
         };
+        if (typeof w.note === 'string' && w.note.trim()) cleanW.note = clipStr(w.note, 2000);
+        weights[clipStr(k, 64)] = cleanW;
       });
     }
     return { date: en.date, weights };
+  }
+  // Sanitize one activityLog entry (WhatsApp + in-app quick-logs).
+  // Shape: { id, type, activity, durationMin, date, from }
+  function sanitizeActivityEntry(en) {
+    if (!en || typeof en !== 'object') return null;
+    if (typeof en.date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(en.date)) return null;
+    const out = {
+      id: clipStr(en.id, 64) || uid(),
+      type: clipStr(en.type, 32) || 'activity',
+      activity: clipStr(en.activity, 200),
+      date: en.date
+    };
+    if (en.durationMin != null && en.durationMin !== '') {
+      out.durationMin = clampInt(en.durationMin, 0, 100000, 0);
+    }
+    if (typeof en.from === 'string') out.from = clipStr(en.from, 64);
+    return out;
   }
   // Validate a v5-shaped backup (nested log keyed by sessionId 1-3) and return a v5-shaped
   // cleaned object. The caller is expected to run migrateV5toV6 on the result.
@@ -4368,6 +4916,12 @@
     if (typeof m.lastActiveDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.lastActiveDate)) {
       out.meta.lastActiveDate = m.lastActiveDate;
     }
+    // Preserve WhatsApp linkage so a round-trip doesn't unlink the user's number.
+    if (typeof m.whatsappNumber === 'string' && m.whatsappNumber.trim()) {
+      out.meta.whatsappNumber = clipStr(m.whatsappNumber.trim(), 32);
+    }
+    if (m.seededRobsWorkout) out.meta.seededRobsWorkout = true;
+    if (m.seededPhilipBio) out.meta.seededPhilipBio = true;
     // workoutType is resolved after workoutTypes are sanitized below.
 
     // ---- workoutTypes ----
@@ -4447,6 +5001,18 @@
           });
         });
         if (cleanEntries.length) out.log[month] = cleanEntries;
+      });
+    }
+
+    // ---- activityLog (WhatsApp + in-app quick-logs, flat array per month) ----
+    out.activityLog = {};
+    if (raw.activityLog && typeof raw.activityLog === 'object') {
+      Object.keys(raw.activityLog).slice(0, 600).forEach(month => {
+        if (!/^\d{4}-\d{2}$/.test(month)) return;
+        const arr = raw.activityLog[month];
+        if (!Array.isArray(arr)) return;
+        const cleanEntries = arr.slice(0, 500).map(sanitizeActivityEntry).filter(Boolean);
+        if (cleanEntries.length) out.activityLog[month] = cleanEntries;
       });
     }
 
@@ -5383,12 +5949,137 @@
     if (navigator.vibrate) navigator.vibrate(20);
   }
 
+  // ---------- Session stopwatch ----------
+  // Persisted via wall-clock timestamp so it keeps correct time across reloads /
+  // backgrounding (phone locked mid-workout still times right).
+  const SW_KEY = 'liftlog_stopwatch';
+  let swInterval = null;
+  function loadStopwatch() {
+    try {
+      const raw = localStorage.getItem(SW_KEY);
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p && typeof p === 'object') return {
+          running: !!p.running,
+          startedAt: Number.isFinite(p.startedAt) ? p.startedAt : null,
+          elapsedMs: Number.isFinite(p.elapsedMs) ? p.elapsedMs : 0
+        };
+      }
+    } catch (e) {}
+    return { running: false, startedAt: null, elapsedMs: 0 };
+  }
+  function saveStopwatch(sw) {
+    try { localStorage.setItem(SW_KEY, JSON.stringify(sw)); } catch (e) {}
+  }
+  function stopwatchElapsedMs(sw) {
+    return sw.elapsedMs + (sw.running && sw.startedAt ? (Date.now() - sw.startedAt) : 0);
+  }
+  function formatStopwatch(ms) {
+    const total = Math.max(0, Math.floor(ms / 1000));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
+    return (h > 0 ? h + ':' : '') + mm + ':' + String(s).padStart(2, '0');
+  }
+  function renderStopwatch() {
+    const timeEl = document.getElementById('swTime');
+    if (!timeEl) return;
+    const sw = loadStopwatch();
+    const ms = stopwatchElapsedMs(sw);
+    timeEl.textContent = formatStopwatch(ms);
+    const iconEl = document.getElementById('swIcon');
+    if (iconEl) iconEl.textContent = sw.running ? '❚❚' : '▶';
+    const bar = document.getElementById('stopwatchBar');
+    if (bar) bar.classList.toggle('running', sw.running);
+    const resetEl = document.getElementById('swReset');
+    if (resetEl) resetEl.style.visibility = (ms > 0 || sw.running) ? 'visible' : 'hidden';
+  }
+  function ensureStopwatchTicking() {
+    const sw = loadStopwatch();
+    if (sw.running && !swInterval) {
+      swInterval = setInterval(renderStopwatch, 1000);
+    } else if (!sw.running && swInterval) {
+      clearInterval(swInterval); swInterval = null;
+    }
+  }
+  function toggleStopwatch() {
+    const sw = loadStopwatch();
+    if (sw.running) {
+      sw.elapsedMs = stopwatchElapsedMs(sw);
+      sw.running = false;
+      sw.startedAt = null;
+    } else {
+      sw.running = true;
+      sw.startedAt = Date.now();
+    }
+    saveStopwatch(sw);
+    renderStopwatch();
+    ensureStopwatchTicking();
+    if (navigator.vibrate) navigator.vibrate(10);
+  }
+  function resetStopwatch() {
+    const sw = loadStopwatch();
+    if (stopwatchElapsedMs(sw) > 0 && !confirm('Reset the session timer?')) return;
+    saveStopwatch({ running: false, startedAt: null, elapsedMs: 0 });
+    renderStopwatch();
+    ensureStopwatchTicking();
+    if (navigator.vibrate) navigator.vibrate([10, 20, 10]);
+  }
+  // Keep the display honest after the tab was backgrounded.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { renderStopwatch(); ensureStopwatchTicking(); }
+  });
+
+  // ---------- Log a gym session straight from the calendar ----------
+  let lgDateKey = null;
+  function openLogGym() {
+    lgDateKey = logSelectedDate || todayKey();
+    const label = document.getElementById('lgDateLabel');
+    if (label) label.textContent = prettyQuickLogDate(lgDateKey);
+    const typeSel = document.getElementById('lgType');
+    const types = state.workoutTypes ? Object.values(state.workoutTypes).filter(w => w && w.id) : [];
+    typeSel.innerHTML = types.map(w =>
+      `<option value="${escapeAttr(w.id)}">${escapeHtml(w.name || w.id)}</option>`).join('');
+    if (state.workoutTypes[state.meta.workoutType]) typeSel.value = state.meta.workoutType;
+    populateLgSessions();
+    document.getElementById('logGymModal').classList.add('active');
+  }
+  function populateLgSessions() {
+    const typeSel = document.getElementById('lgType');
+    const sessSel = document.getElementById('lgSession');
+    const wt = state.workoutTypes[typeSel.value];
+    const sessions = (wt && wt.sessions) ? wt.sessions : {};
+    const sids = Object.keys(sessions).map(n => parseInt(n, 10)).sort((a, b) => a - b);
+    sessSel.innerHTML = sids.map(sid => {
+      const nm = (sessions[sid] && sessions[sid].name) || ('SESSION ' + sid);
+      return `<option value="${sid}">${escapeHtml(nm)}</option>`;
+    }).join('');
+  }
+  function saveLogGym() {
+    const workoutType = document.getElementById('lgType').value;
+    const sessionId = parseInt(document.getElementById('lgSession').value, 10);
+    const date = lgDateKey || todayKey();
+    if (!workoutType || !Number.isFinite(sessionId)) return;
+    const month = date.slice(0, 7);
+    if (!Array.isArray(state.log[month])) state.log[month] = [];
+    const exists = state.log[month].some(e =>
+      e.workoutType === workoutType && parseInt(e.sessionId, 10) === sessionId && e.date === date);
+    if (!exists) state.log[month].push({ workoutType, sessionId, date, weights: {} });
+    saveState();
+    closeModal('logGymModal');
+    if (navigator.vibrate) navigator.vibrate([15, 30, 20]);
+    renderLogPage();
+  }
+
   // Tap logo to open workout-type picker
   const _logoEl = document.querySelector('.logo');
   if (_logoEl) _logoEl.addEventListener('click', openWorkoutTypePicker);
 
   renderSessionTabs();
   render();
+  renderStopwatch();
+  ensureStopwatchTicking();
   showRecoveryBannerIfPending();
   syncActivityLog();
 </script>
