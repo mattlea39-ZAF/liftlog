@@ -1994,36 +1994,52 @@
 
   .exercise.has-note .note-indicator { display: block; }
 
-  /* Per-exercise "next time" note — carries to the following session then clears */
-  .ex-note-block { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; }
-  .ex-lastnote {
+  /* Per-exercise "next time" note.
+     Swipe a card left to reveal the note action; the carried note from last
+     session shows inline (only when present), and an accent left-edge marks it. */
+  .ex-swipe {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+  }
+  .ex-swipe::-webkit-scrollbar { display: none; }
+  .ex-slide {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    min-width: 0;
+    background: transparent;
+  }
+  .ex-swipe-note {
+    flex: 0 0 66px;
+    scroll-snap-align: end;
+    border: none;
+    background: var(--surface-2);
+    color: var(--accent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .ex-swipe-note .sn-icon { font-size: 15px; }
+  /* Carried note from the previous session (inline context, only shows when set) */
+  .ex-carry {
     font-family: 'JetBrains Mono', monospace;
     font-size: 11px;
     line-height: 1.4;
     color: var(--accent);
-    background: rgba(212, 255, 0, 0.08);
-    border: 1px solid rgba(212, 255, 0, 0.28);
-    border-radius: 8px;
-    padding: 7px 10px;
+    padding: 8px 12px 9px;
+    border-top: 1px solid var(--border);
     word-break: break-word;
   }
-  .ex-note-btn {
-    width: 100%;
-    text-align: left;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px;
-    line-height: 1.4;
-    color: var(--text-dim);
-    background: var(--bg);
-    border: 1px dashed var(--border);
-    border-radius: 8px;
-    padding: 7px 10px;
-    cursor: pointer;
-    word-break: break-word;
-    transition: border-color .15s, color .15s, background .15s;
-  }
-  .ex-note-btn.has { color: var(--text); border-style: solid; background: var(--surface); }
-  .ex-note-btn:active { transform: scale(0.99); }
+  .exercise.has-carry { border-left: 2px solid var(--accent); }
 
   /* Coaching accordion (Philip Nel · Bio — Option A) */
   .coach-toggle {
@@ -2087,37 +2103,49 @@
   .last-session-strip .lss-sep { color: var(--text-dim); }
   .last-session-strip .lss-meta { font-size: 11px; color: var(--text-dim); letter-spacing: .05em; margin-left: auto; white-space: nowrap; }
 
-  /* Session stopwatch bar (in header, below session tabs) */
-  .stopwatch-bar {
-    display: flex; align-items: center; gap: 8px;
-    margin-top: 8px;
+  /* Session timer — a ⏱ icon in the header that drops down a slim strip on tap */
+  #swIconBtn { position: relative; }
+  #swIconBtn.timing { color: var(--accent); border-color: var(--accent); }
+  .sw-live-dot {
+    position: absolute; top: 4px; right: 4px; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 6px var(--accent); display: none;
+    animation: swpulse 1.2s ease-in-out infinite;
   }
-  .stopwatch-bar .sw-main {
+  #swIconBtn.timing .sw-live-dot { display: block; }
+  @keyframes swpulse { 0%,100% { opacity: .35; } 50% { opacity: 1; } }
+  .stopwatch-strip { max-height: 0; overflow: hidden; transition: max-height .25s ease; }
+  .stopwatch-strip.open { max-height: 56px; }
+  .sw-strip-in {
     display: flex; align-items: center; gap: 10px;
-    flex: 1;
-    padding: 8px 14px;
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 10px;
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
+    margin-top: 8px; padding: 8px 12px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
   }
-  .stopwatch-bar.running .sw-main { border-color: var(--accent); background: rgba(212, 255, 0, 0.06); }
-  .stopwatch-bar .sw-icon { font-size: 12px; color: var(--accent); width: 16px; text-align: center; }
-  .stopwatch-bar .sw-time {
+  .stopwatch-strip.running .sw-strip-in { border-color: var(--accent); background: rgba(212, 255, 0, 0.06); }
+  .sw-time {
     font-family: 'JetBrains Mono', monospace;
     font-size: 18px; font-weight: 700; letter-spacing: .06em;
-    color: var(--text);
-    font-variant-numeric: tabular-nums;
+    color: var(--text); font-variant-numeric: tabular-nums; margin-right: auto;
   }
-  .stopwatch-bar .sw-reset {
-    padding: 8px 12px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 10px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; letter-spacing: .1em; color: var(--text-dim);
-    cursor: pointer;
+  .sw-btn {
+    padding: 7px 14px; background: transparent; border: 1px solid var(--border); border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .12em;
+    color: var(--text-dim); cursor: pointer; transition: border-color .15s, color .15s;
   }
-  .stopwatch-bar .sw-reset:active { transform: scale(0.97); }
+  .sw-btn.go { color: var(--accent); border-color: var(--accent); }
+  .sw-btn:active { transform: scale(0.97); }
+
+  /* Auto-log confirmation toast (replaces the KEEP GOING card) */
+  .log-toast {
+    position: fixed; left: 50%; bottom: 30px; transform: translate(-50%, 12px);
+    z-index: 500; pointer-events: none; opacity: 0;
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 22px;
+    background: rgba(20, 20, 20, 0.95); border: 1px solid var(--accent);
+    color: var(--accent); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .06em;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .log-toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   /* Long-press feedback */
   .exercise.long-press-feedback {
@@ -2399,6 +2427,12 @@
       <button type="button" class="today-pill" id="todayPill" onclick="resetActiveDateToToday()">← TODAY</button>
     </div>
     <div class="header-right">
+      <button class="edit-toggle" id="swIconBtn" onclick="toggleStopwatchStrip()" aria-label="Session timer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"/><path d="M12 7.5V12l3 2"/>
+        </svg>
+        <span class="sw-live-dot" id="swLiveDot"></span>
+      </button>
       <button class="edit-toggle" id="dataToggle" onclick="openDataModal()" aria-label="Backup data">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
@@ -2421,12 +2455,12 @@
     </div>
   </div>
   <div class="session-tabs" id="sessionTabs"></div>
-  <div class="stopwatch-bar" id="stopwatchBar">
-    <button type="button" class="sw-main" id="swToggle" onclick="toggleStopwatch()" aria-label="Start or pause session timer">
-      <span class="sw-icon" id="swIcon">▶</span>
+  <div class="stopwatch-strip" id="stopwatchStrip">
+    <div class="sw-strip-in">
       <span class="sw-time" id="swTime">0:00</span>
-    </button>
-    <button type="button" class="sw-reset" id="swReset" onclick="resetStopwatch()" aria-label="Reset session timer">RESET</button>
+      <button type="button" class="sw-btn go" id="swToggle" onclick="toggleStopwatch()">START</button>
+      <button type="button" class="sw-btn" id="swReset" onclick="resetStopwatch()">RESET</button>
+    </div>
   </div>
   <span id="sessionNum" style="display:none">1</span>
   <span id="freqDisplay" style="display:none"></span>
@@ -2446,19 +2480,13 @@
 
 <div class="edit-mode-banner">EDIT MODE</div>
 
+<div id="logToast" class="log-toast" role="status" aria-live="polite"></div>
+
 <button type="button" class="log-lift-pill" id="logLiftPill" onclick="logLiftPillTap()">LOG LIFT FOR <span id="llpDate"></span></button>
 
 <div class="container">
 
 <div id="lastSessionStrip" class="last-session-strip" style="display:none;"></div>
-
-<div id="sessionCompleteBar" class="session-complete-bar" style="display:none;">
-    <div class="scb-info">
-      <div class="scb-title" id="scbTitle">SESSION COMPLETE</div>
-      <div class="scb-meta" id="scbMeta">Logged for today</div>
-    </div>
-    <button class="scb-action" id="scbAction" onclick="toggleSessionLogged()">LOG</button>
-  </div>
 
   <div id="groupsContainer"></div>
 
@@ -3676,61 +3704,65 @@
         const exEl = document.createElement('div');
         const pendingNote = (ex.note && ex.note.trim()) ? ex.note.trim() : '';
         const carriedNote = (ex.lastNote && ex.lastNote.trim()) ? ex.lastNote.trim() : '';
-        const hasNote = !!(pendingNote || carriedNote);
-        exEl.className = 'exercise' + (ex.done ? ' done' : '') + (hasNote ? ' has-note' : '')
+        exEl.className = 'exercise' + (ex.done ? ' done' : '')
+          + (pendingNote ? ' has-note' : '')
+          + (carriedNote ? ' has-carry' : '')
           + (hasCoaching && openCoach.has(ex.id) ? ' open' : '');
         exEl.dataset.gid = group.id;
         exEl.dataset.eid = ex.id;
+        // Card content lives in .ex-slide; swipe it left to reveal the NOTE action.
         exEl.innerHTML = `
           <div class="note-indicator"></div>
-          <div class="exercise-row">
-            <button type="button" class="delete-overlay" onclick="deleteExercise('${group.id}','${ex.id}')" aria-label="Delete">×</button>
-            <div class="reorder-controls">
-              <button class="reorder-btn" ${isFirst ? 'disabled' : ''} onclick="moveExercise('${group.id}','${ex.id}',-1)">▲</button>
-              <button class="reorder-btn" ${isLast ? 'disabled' : ''} onclick="moveExercise('${group.id}','${ex.id}',1)">▼</button>
-            </div>
-            <div class="exercise-num">${eIdx + 1}</div>
-            <div class="exercise-main">
-              <textarea class="exercise-name" rows="1"
-                oninput="autosizeNameField(this)"
-                onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
-                onchange="updateExerciseField('${group.id}','${ex.id}','name',this.value)">${escapeHtml(ex.name)}</textarea>
-              <input class="exercise-name exercise-meta" style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);"
-                value="${escapeAttr(ex.meta || '')}" 
-                onchange="updateExerciseField('${group.id}','${ex.id}','meta',this.value)">
-            </div>
-            ${isBody ? '' : `<div class="weight-control">
-              <button type="button" class="weight-btn"
-                onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',-${step})"
-                onpointerup="endWeightHold('${group.id}','${ex.id}',-${step})"
-                onpointercancel="cancelWeightHold()">−</button>
-              <div class="weight-display" onclick="editWeight(this,'${group.id}','${ex.id}')">
-                <div class="weight-value">${formatValue(ex.weight, unit)}</div>
-                <div class="weight-unit">${unitLabel}</div>
+          <div class="ex-swipe">
+            <div class="ex-slide">
+              <div class="exercise-row">
+                <button type="button" class="delete-overlay" onclick="deleteExercise('${group.id}','${ex.id}')" aria-label="Delete">×</button>
+                <div class="reorder-controls">
+                  <button class="reorder-btn" ${isFirst ? 'disabled' : ''} onclick="moveExercise('${group.id}','${ex.id}',-1)">▲</button>
+                  <button class="reorder-btn" ${isLast ? 'disabled' : ''} onclick="moveExercise('${group.id}','${ex.id}',1)">▼</button>
+                </div>
+                <div class="exercise-num">${eIdx + 1}</div>
+                <div class="exercise-main">
+                  <textarea class="exercise-name" rows="1"
+                    oninput="autosizeNameField(this)"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                    onchange="updateExerciseField('${group.id}','${ex.id}','name',this.value)">${escapeHtml(ex.name)}</textarea>
+                  <input class="exercise-name exercise-meta" style="font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--text-dim);"
+                    value="${escapeAttr(ex.meta || '')}"
+                    onchange="updateExerciseField('${group.id}','${ex.id}','meta',this.value)">
+                </div>
+                ${isBody ? '' : `<div class="weight-control">
+                  <button type="button" class="weight-btn"
+                    onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',-${step})"
+                    onpointerup="endWeightHold('${group.id}','${ex.id}',-${step})"
+                    onpointercancel="cancelWeightHold()">−</button>
+                  <div class="weight-display" onclick="editWeight(this,'${group.id}','${ex.id}')">
+                    <div class="weight-value">${formatValue(ex.weight, unit)}</div>
+                    <div class="weight-unit">${unitLabel}</div>
+                  </div>
+                  <button type="button" class="weight-btn"
+                    onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',${step})"
+                    onpointerup="endWeightHold('${group.id}','${ex.id}',${step})"
+                    onpointercancel="cancelWeightHold()">+</button>
+                </div>`}
               </div>
-              <button type="button" class="weight-btn"
-                onpointerdown="startWeightHold(event,'${group.id}','${ex.id}',${step})"
-                onpointerup="endWeightHold('${group.id}','${ex.id}',${step})"
-                onpointercancel="cancelWeightHold()">+</button>
-            </div>`}
-          </div>
-          <div class="exercise-actions edit-only-actions">
-            ${linkLabel ? `<button class="action-btn link-btn ${ex.supersetId ? 'linked' : ''}" onclick="toggleSuperset('${group.id}','${ex.id}')">${linkLabel}</button>` : '<div class="action-btn-spacer"></div>'}
-            <button class="action-btn unit-btn" onclick="toggleUnit('${group.id}','${ex.id}')">${unitLabel}</button>
-          </div>
-          ${hasCoaching ? `
-          <button type="button" class="coach-toggle" onclick="toggleCoach('${ex.id}',this)"><span>Coaching notes</span><span class="chev">›</span></button>
-          <div class="coach-panel">
-            ${ex.setup && ex.setup.trim() ? `<div class="coach-setup">${escapeHtml(ex.setup)}</div>` : ''}
-            ${focusArr.length ? `<ul class="coach-focus">${focusArr.map(ff => `<li>${escapeHtml(ff)}</li>`).join('')}</ul>` : ''}
-            ${tagsArr.length ? `<div class="coach-tags">${tagsArr.map(tt => `<span class="coach-tag">${escapeHtml(tt)}</span>`).join('')}</div>` : ''}
-            ${ex.goal && ex.goal.trim() ? `<div class="coach-goal">${escapeHtml(ex.goal)}</div>` : ''}
-            <button type="button" class="coach-edit edit-only-actions" onclick="openCoachEditor('${group.id}','${ex.id}')">✎ EDIT COACHING</button>
-          </div>` : `<button type="button" class="coach-add edit-only-actions" onclick="openCoachEditor('${group.id}','${ex.id}')">＋ COACHING NOTES</button>`}
-          ${inSuperset ? '' : `<button class="done-bar ${ex.done ? 'active' : ''}" onclick="toggleDone('${group.id}','${ex.id}')">${ex.done ? '✓ DONE' : 'MARK DONE'}</button>`}
-          <div class="ex-note-block">
-            ${carriedNote ? `<div class="ex-lastnote">↩ LAST TIME · ${escapeHtml(carriedNote)}</div>` : ''}
-            <button type="button" class="ex-note-btn${pendingNote ? ' has' : ''}" onclick="openNotes('${group.id}','${ex.id}')">${pendingNote ? '📝 ' + escapeHtml(pendingNote) : '＋ note for next time'}</button>
+              ${carriedNote ? `<div class="ex-carry">↩ ${escapeHtml(carriedNote)}</div>` : ''}
+              <div class="exercise-actions edit-only-actions">
+                ${linkLabel ? `<button class="action-btn link-btn ${ex.supersetId ? 'linked' : ''}" onclick="toggleSuperset('${group.id}','${ex.id}')">${linkLabel}</button>` : '<div class="action-btn-spacer"></div>'}
+                <button class="action-btn unit-btn" onclick="toggleUnit('${group.id}','${ex.id}')">${unitLabel}</button>
+              </div>
+              ${hasCoaching ? `
+              <button type="button" class="coach-toggle" onclick="toggleCoach('${ex.id}',this)"><span>Coaching notes</span><span class="chev">›</span></button>
+              <div class="coach-panel">
+                ${ex.setup && ex.setup.trim() ? `<div class="coach-setup">${escapeHtml(ex.setup)}</div>` : ''}
+                ${focusArr.length ? `<ul class="coach-focus">${focusArr.map(ff => `<li>${escapeHtml(ff)}</li>`).join('')}</ul>` : ''}
+                ${tagsArr.length ? `<div class="coach-tags">${tagsArr.map(tt => `<span class="coach-tag">${escapeHtml(tt)}</span>`).join('')}</div>` : ''}
+                ${ex.goal && ex.goal.trim() ? `<div class="coach-goal">${escapeHtml(ex.goal)}</div>` : ''}
+                <button type="button" class="coach-edit edit-only-actions" onclick="openCoachEditor('${group.id}','${ex.id}')">✎ EDIT COACHING</button>
+              </div>` : `<button type="button" class="coach-add edit-only-actions" onclick="openCoachEditor('${group.id}','${ex.id}')">＋ COACHING NOTES</button>`}
+              ${inSuperset ? '' : `<button class="done-bar ${ex.done ? 'active' : ''}" onclick="toggleDone('${group.id}','${ex.id}')">${ex.done ? '✓ DONE' : 'MARK DONE'}</button>`}
+            </div>
+            <button type="button" class="ex-swipe-note" onclick="openNotes('${group.id}','${ex.id}')" aria-label="Note for next session"><span class="sn-icon">✎</span>NOTE</button>
           </div>
         `;
         return exEl;
@@ -3814,48 +3846,33 @@
     );
   }
   
+  // The "KEEP GOING" card is gone — a session auto-logs silently once ≥50% of its
+  // exercises are ticked, with a brief toast. Unlog from the calendar.
   function updateSessionCompleteBar(total, done) {
-    const bar = document.getElementById('sessionCompleteBar');
-    if (!bar) return;
-    if (total === 0) { bar.style.display = 'none'; return; }
-    bar.style.display = 'flex';
-    
-    const pct = (done / total) * 100;
-    const eligible = pct >= 60;
-    const logged = isSessionLoggedToday();
-    
-    bar.classList.toggle('eligible', eligible && !logged);
-    bar.classList.toggle('logged', logged);
-    
-    const title = document.getElementById('scbTitle');
-    const meta = document.getElementById('scbMeta');
-    const action = document.getElementById('scbAction');
-    
-    if (logged) {
-      title.textContent = '✓ SESSION LOGGED';
-      meta.textContent = `${sessionName(state.meta.session)} · ${formatDateShort(activeDateKey())}`;
-      action.textContent = 'UNLOG';
-    } else if (eligible) {
-      title.textContent = 'READY TO LOG';
-      meta.textContent = `${done}/${total} done (${Math.round(pct)}%) — auto-logging…`;
-      action.textContent = 'LOG NOW';
-      // Auto-log on cross to 60%
-      autoLogIfEligible();
-    } else {
-      title.textContent = 'KEEP GOING';
-      meta.textContent = `${done}/${total} done · need 60% to log`;
-      action.textContent = 'LOG';
-    }
+    if (total === 0) return;
+    if (isSessionLoggedToday()) return;
+    if ((done / total) * 100 >= 50) autoLogIfEligible();
   }
-  
+
+  function showLoggedToast() {
+    const t = document.getElementById('logToast');
+    if (!t) return;
+    t.textContent = `✓ Session logged · ${sessionName(state.meta.session)}`;
+    t.classList.add('show');
+    clearTimeout(t._hideTimer);
+    t._hideTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
   function todayDisplay() {
     return new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
   }
-  
+
   function autoLogIfEligible() {
     if (isSessionLoggedToday()) return;
     logSession();
-    // Re-render on next tick so SCB reflects logged state
+    showLoggedToast();
+    if (navigator.vibrate) navigator.vibrate([12, 25, 12]);
+    // Re-render on next tick so the logged state settles
     setTimeout(() => render(), 0);
   }
   
@@ -5982,16 +5999,24 @@
     const mm = h > 0 ? String(m).padStart(2, '0') : String(m);
     return (h > 0 ? h + ':' : '') + mm + ':' + String(s).padStart(2, '0');
   }
+  function toggleStopwatchStrip() {
+    const strip = document.getElementById('stopwatchStrip');
+    if (strip) strip.classList.toggle('open');
+    renderStopwatch();
+  }
   function renderStopwatch() {
     const timeEl = document.getElementById('swTime');
     if (!timeEl) return;
     const sw = loadStopwatch();
     const ms = stopwatchElapsedMs(sw);
     timeEl.textContent = formatStopwatch(ms);
-    const iconEl = document.getElementById('swIcon');
-    if (iconEl) iconEl.textContent = sw.running ? '❚❚' : '▶';
-    const bar = document.getElementById('stopwatchBar');
-    if (bar) bar.classList.toggle('running', sw.running);
+    // Header icon carries a live dot + accent while running (visible even when the strip is closed)
+    const iconBtn = document.getElementById('swIconBtn');
+    if (iconBtn) iconBtn.classList.toggle('timing', sw.running || ms > 0);
+    const strip = document.getElementById('stopwatchStrip');
+    if (strip) strip.classList.toggle('running', sw.running);
+    const toggleBtn = document.getElementById('swToggle');
+    if (toggleBtn) { toggleBtn.textContent = sw.running ? 'PAUSE' : 'START'; toggleBtn.classList.toggle('go', !sw.running); }
     const resetEl = document.getElementById('swReset');
     if (resetEl) resetEl.style.visibility = (ms > 0 || sw.running) ? 'visible' : 'hidden';
   }
